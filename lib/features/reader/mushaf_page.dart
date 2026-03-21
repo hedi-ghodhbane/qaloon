@@ -53,10 +53,12 @@ class _MushafPageState extends ConsumerState<MushafPage> {
     final dir = await getApplicationDocumentsDirectory();
     final path =
         '${dir.path}/riwaya_${widget.riwayaKey}/${widget.pageNumber}.png';
-    if (mounted) setState(() {
-      _imagePath = path;
-      _pathReady = true;
-    });
+    if (mounted) {
+      setState(() {
+        _imagePath = path;
+        _pathReady = true;
+      });
+    }
   }
 
   void _onAyahTap(PageGlyph glyph) {
@@ -128,31 +130,19 @@ class _MushafPageState extends ConsumerState<MushafPage> {
     // Will be populated after glyphs load.
   }
 
-  Widget _buildPageImage(double screenWidth) {
-    final Widget image;
+  Widget _buildPageImage() {
     if (widget.isBundled) {
-      image = Image.asset(
-        _assetPath,
-        fit: BoxFit.fitWidth,
-        width: screenWidth,
-        cacheWidth: screenWidth.toInt(),
-      );
-    } else {
-      final imageFile = File(_imagePath!);
-      if (!imageFile.existsSync()) {
-        return const Center(
-          child: Text('صفحة غير متوفرة', style: TextStyle(fontSize: 18)),
-        );
-      }
-      image = Image.file(
-        imageFile,
-        fit: BoxFit.fitWidth,
-        width: screenWidth,
-        cacheWidth: screenWidth.toInt(),
+      return SizedBox.expand(
+        child: Image.asset(_assetPath, fit: BoxFit.contain),
       );
     }
-    // White background so transparent PNG doesn't show the app bg color.
-    return ColoredBox(color: Colors.white, child: image);
+    final imageFile = File(_imagePath!);
+    if (!imageFile.existsSync()) {
+      return const Center(
+        child: Text('صفحة غير متوفرة', style: TextStyle(fontSize: 18)),
+      );
+    }
+    return SizedBox.expand(child: Image.file(imageFile, fit: BoxFit.contain));
   }
 
   @override
@@ -172,24 +162,21 @@ class _MushafPageState extends ConsumerState<MushafPage> {
         );
 
         return glyphsAsync.when(
-          loading: () => Center(
-            child: Stack(children: [_buildPageImage(screenWidth)]),
-          ),
+          loading: () =>
+              ColoredBox(color: Colors.white, child: _buildPageImage()),
           error: (e, _) => Center(child: Text('خطأ: $e')),
           data: (glyphs) {
-            return Center(
-              child: Stack(
-                children: [
-                  _buildPageImage(screenWidth),
-                  GlyphOverlay(
-                    glyphs: glyphs,
-                    selectedAyahs: _selectedAyahs,
-                    hiddenAyahs: _hiddenAyahs,
-                    onTap: _onAyahTap,
-                    onLongPress: _onAyahLongPress,
-                  ),
-                ],
-              ),
+            return Stack(
+              children: [
+                _buildPageImage(),
+                GlyphOverlay(
+                  glyphs: glyphs,
+                  selectedAyahs: _selectedAyahs,
+                  hiddenAyahs: _hiddenAyahs,
+                  onTap: _onAyahTap,
+                  onLongPress: _onAyahLongPress,
+                ),
+              ],
             );
           },
         );

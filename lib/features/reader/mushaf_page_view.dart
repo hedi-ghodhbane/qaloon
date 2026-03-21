@@ -31,7 +31,6 @@ class _MushafPageViewState extends ConsumerState<MushafPageView> {
   @override
   void initState() {
     super.initState();
-    // Pages are 1-indexed but PageView is 0-indexed.
     _controller = PageController(initialPage: widget.initialPage - 1);
   }
 
@@ -41,12 +40,18 @@ class _MushafPageViewState extends ConsumerState<MushafPageView> {
     super.dispose();
   }
 
-  void jumpToPage(int pageNumber) {
-    _controller.jumpToPage(pageNumber - 1);
-  }
-
   @override
   Widget build(BuildContext context) {
+    // Listen for external page changes (e.g. surah navigation).
+    ref.listen<int>(currentPageProvider, (prev, next) {
+      if (_controller.hasClients) {
+        final currentIndex = _controller.page?.round() ?? 0;
+        if (currentIndex != next - 1) {
+          _controller.jumpToPage(next - 1);
+        }
+      }
+    });
+
     return Directionality(
       textDirection: TextDirection.rtl,
       child: PageView.builder(
