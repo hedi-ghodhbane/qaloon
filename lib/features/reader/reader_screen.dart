@@ -229,59 +229,139 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     );
   }
 
+  bool _tarteelExpanded = false;
+
   Widget _buildBottomBar(BuildContext context) {
     final mode = ref.watch(readerModeProvider);
+
+    if (_tarteelExpanded) {
+      return _buildTarteelMenu(mode);
+    }
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        // Bookmark
         _BottomAction(
           icon: Icons.bookmark_outline,
           label: 'العلامة',
           onTap: _goToBookmark,
         ),
-        // Hide all page
         _BottomAction(
-          icon: Icons.visibility_off_outlined,
-          label: 'إخفاء الكل',
-          onTap: () {
-            ref.read(readerModeProvider.notifier).state = ReaderMode.hidePage;
-            ref.read(readerActionProvider.notifier).state =
-                ReaderAction.hideAll;
-          },
+          icon: Icons.auto_fix_high,
+          label: 'تسميع',
+          onTap: () => setState(() => _tarteelExpanded = true),
         ),
-        // Show all
-        _BottomAction(
-          icon: Icons.visibility,
-          label: 'إظهار الكل',
-          onTap: () {
-            ref.read(readerActionProvider.notifier).state =
-                ReaderAction.showAll;
-            ref.read(readerModeProvider.notifier).state = ReaderMode.normal;
-          },
-        ),
-        // Select mode / hide selected
-        _BottomAction(
-          icon: mode == ReaderMode.select
-              ? Icons.check_circle_outline
-              : Icons.select_all,
-          label: mode == ReaderMode.select ? 'إخفاء المحدد' : 'تحديد',
-          onTap: () {
-            if (mode == ReaderMode.select) {
-              ref.read(readerActionProvider.notifier).state =
-                  ReaderAction.hideSelected;
-              ref.read(readerModeProvider.notifier).state = ReaderMode.normal;
-            } else {
-              ref.read(readerModeProvider.notifier).state = ReaderMode.select;
-            }
-          },
-        ),
-        // Stats
         _BottomAction(
           icon: Icons.bar_chart_rounded,
           label: 'إحصائيات',
           onTap: () => context.push('/stats'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTarteelMenu(ReaderMode mode) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Tarteel tools — 2 rows in a pill
+        Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.75),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Row 1: Hide all / Show all
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _TarteelChip(
+                    icon: Icons.visibility_off,
+                    label: 'إخفاء الكل',
+                    onTap: () {
+                      ref.read(readerModeProvider.notifier).state =
+                          ReaderMode.hidePage;
+                      ref.read(readerActionProvider.notifier).state =
+                          ReaderAction.hideAll;
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  _TarteelChip(
+                    icon: Icons.visibility,
+                    label: 'إظهار الكل',
+                    onTap: () {
+                      ref.read(readerActionProvider.notifier).state =
+                          ReaderAction.showAll;
+                      ref.read(readerModeProvider.notifier).state =
+                          ReaderMode.normal;
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              // Row 2: Show next / Hide next / Select
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _TarteelChip(
+                    icon: Icons.skip_next,
+                    label: 'إظهار التالية',
+                    onTap: () {
+                      ref.read(readerActionProvider.notifier).state =
+                          ReaderAction.showNext;
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  _TarteelChip(
+                    icon: Icons.skip_previous,
+                    label: 'إخفاء التالية',
+                    onTap: () {
+                      ref.read(readerActionProvider.notifier).state =
+                          ReaderAction.hideNext;
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  _TarteelChip(
+                    icon: mode == ReaderMode.select
+                        ? Icons.check_circle_outline
+                        : Icons.select_all,
+                    label:
+                        mode == ReaderMode.select ? 'إخفاء المحدد' : 'تحديد',
+                    active: mode == ReaderMode.select,
+                    onTap: () {
+                      if (mode == ReaderMode.select) {
+                        ref.read(readerActionProvider.notifier).state =
+                            ReaderAction.hideSelected;
+                        ref.read(readerModeProvider.notifier).state =
+                            ReaderMode.normal;
+                        setState(() => _tarteelExpanded = false);
+                      } else {
+                        ref.read(readerModeProvider.notifier).state =
+                            ReaderMode.select;
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        // Close button
+        GestureDetector(
+          onTap: () => setState(() => _tarteelExpanded = false),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.keyboard_arrow_down,
+                color: Colors.white, size: 20),
+          ),
         ),
       ],
     );
@@ -335,6 +415,56 @@ class _BottomAction extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _TarteelChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool active;
+
+  const _TarteelChip({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.active = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: active
+              ? Colors.white.withValues(alpha: 0.25)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          border: active
+              ? null
+              : Border.all(
+                  color: Colors.white.withValues(alpha: 0.3),
+                ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: Colors.white, size: 16),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

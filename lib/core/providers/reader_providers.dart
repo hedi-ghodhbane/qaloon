@@ -20,7 +20,7 @@ enum ReaderMode {
 final readerModeProvider = StateProvider<ReaderMode>((ref) => ReaderMode.normal);
 
 /// Signals from toolbar to the active MushafPage.
-enum ReaderAction { hideAll, showAll, hideSelected }
+enum ReaderAction { hideAll, showAll, hideSelected, showNext, hideNext }
 
 final readerActionProvider = StateProvider<ReaderAction?>((ref) => null);
 

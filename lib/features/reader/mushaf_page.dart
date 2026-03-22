@@ -57,6 +57,10 @@ class _MushafPageState extends ConsumerState<MushafPage> {
           showAll();
         case ReaderAction.hideSelected:
           hideSelected();
+        case ReaderAction.showNext:
+          _showNextAyah();
+        case ReaderAction.hideNext:
+          _hideNextAyah();
       }
       // Reset after frame so it can fire again.
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -251,6 +255,49 @@ class _MushafPageState extends ConsumerState<MushafPage> {
       _selectedAyahs.clear();
     });
     _syncHiddenState();
+  }
+
+  /// Ordered list of ayah keys on this page (reading order: top→bottom, RTL).
+  List<AyahKey> _orderedAyahKeys() {
+    final glyphs = ref
+        .read(glyphsForPageProvider((
+          pageNumber: widget.pageNumber,
+          riwayaId: widget.riwayaId,
+          screenWidth: widget.imageNativeWidth.toDouble(),
+          imageNativeWidth: widget.imageNativeWidth,
+        )))
+        .valueOrNull;
+    if (glyphs == null) return [];
+    // Deduplicate while preserving order.
+    final seen = <AyahKey>{};
+    return glyphs
+        .map((g) => g.ayahKey)
+        .where((k) => seen.add(k))
+        .toList();
+  }
+
+  /// Reveal the first hidden ayah (in reading order).
+  void _showNextAyah() {
+    final ordered = _orderedAyahKeys();
+    for (final key in ordered) {
+      if (_hiddenAyahs.contains(key)) {
+        setState(() => _hiddenAyahs.remove(key));
+        _syncHiddenState();
+        return;
+      }
+    }
+  }
+
+  /// Hide the first visible (non-hidden) ayah (in reading order).
+  void _hideNextAyah() {
+    final ordered = _orderedAyahKeys();
+    for (final key in ordered) {
+      if (!_hiddenAyahs.contains(key)) {
+        setState(() => _hiddenAyahs.add(key));
+        _syncHiddenState();
+        return;
+      }
+    }
   }
 
   Widget _buildPageImage() {

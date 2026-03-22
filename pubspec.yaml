@@ -28,6 +28,22 @@ dev_dependencies:
   drift_dev: any
   build_runner: any
   json_serializable: any
+  flutter_launcher_icons: any
+  flutter_native_splash: any
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/logo.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/logo.png"
+
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: "assets/logo.png"
+  android_12:
+    image: "assets/logo.png"
+    color: "#FFFFFF"
 
 flutter:
   uses-material-design: true
@@ -35,3 +51,4 @@ flutter:
     - assets/db/
     - assets/metadata/
     - assets/pages/qaloun_golden/
+    - assets/logo.png
