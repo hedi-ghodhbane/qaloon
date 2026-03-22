@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'surah_list.dart';
 import 'juz_list.dart';
+import 'ayah_search.dart';
 import 'page_jump_dialog.dart';
 
 class NavigationScreen extends ConsumerWidget {
@@ -11,7 +12,7 @@ class NavigationScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('الفهرس'),
@@ -19,6 +20,7 @@ class NavigationScreen extends ConsumerWidget {
             tabs: [
               Tab(text: 'السور'),
               Tab(text: 'الأجزاء'),
+              Tab(text: 'بحث'),
             ],
             labelColor: Colors.white,
             unselectedLabelColor: Colors.white70,
@@ -36,6 +38,7 @@ class NavigationScreen extends ConsumerWidget {
           children: [
             SurahList(),
             JuzList(),
+            AyahSearch(),
           ],
         ),
       ),

@@ -2685,6 +2685,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final PageAyahIndexDao pageAyahIndexDao = PageAyahIndexDao(
     this as AppDatabase,
   );
+  late final AyahTextDao ayahTextDao = AyahTextDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();

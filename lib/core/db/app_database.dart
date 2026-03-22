@@ -11,12 +11,14 @@ import 'tables/page_ayah_index_table.dart';
 import 'tables/glyph_table.dart';
 import 'tables/bookmark_table.dart';
 import 'tables/reading_session_table.dart';
+import 'tables/ayah_text_table.dart';
 import 'daos/glyph_dao.dart';
 import 'daos/bookmark_dao.dart';
 import 'daos/reading_session_dao.dart';
 import 'daos/surah_dao.dart';
 import 'daos/riwaya_dao.dart';
 import 'daos/page_ayah_index_dao.dart';
+import 'daos/ayah_text_dao.dart';
 
 part 'app_database.g.dart';
 
@@ -146,6 +148,7 @@ const _qalounSurahStartPages = [
     GlyphTable,
     BookmarkTable,
     ReadingSessionTable,
+    AyahTextTable,
   ],
   daos: [
     GlyphDao,
@@ -154,13 +157,14 @@ const _qalounSurahStartPages = [
     SurahDao,
     RiwayaDao,
     PageAyahIndexDao,
+    AyahTextDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   static QueryExecutor _openConnection() {
     return driftDatabase(name: 'quran_mushaf_v3');
@@ -180,8 +184,9 @@ class AppDatabase extends _$AppDatabase {
       await _seedRiwayas();
     },
     beforeOpen: (details) async {
-      // Seed surahs + page index if not yet present.
       await _seedSurahsIfNeeded();
+      await _seedGlyphsIfNeeded();
+      await _seedAyahTextIfNeeded();
     },
   );
 
@@ -260,7 +265,90 @@ class AppDatabase extends _$AppDatabase {
       await batch((b) => b.insertAll(pageAyahIndexTable, rows));
       debugPrint('[SEED] Inserted ${rows.length} page-ayah-index rows');
     } catch (e) {
-      debugPrint('[SEED] ERROR: $e');
+      debugPrint('[SEED] ERROR seeding surahs: $e');
     }
   }
+
+  Future<void> _seedGlyphsIfNeeded() async {
+    try {
+      final existing = await glyphDao.getGlyphsForPage(1, 1);
+      if (existing.isNotEmpty) {
+        debugPrint('[SEED] Glyphs already seeded');
+        return;
+      }
+
+      final jsonStr = await rootBundle.loadString(
+        'assets/metadata/glyphs_qaloun.json',
+      );
+      final List<dynamic> glyphs = json.decode(jsonStr);
+
+      const batchSize = 500;
+      for (int i = 0; i < glyphs.length; i += batchSize) {
+        final chunk = glyphs.skip(i).take(batchSize);
+        await batch((b) {
+          b.insertAll(
+            glyphTable,
+            chunk
+                .map(
+                  (g) => GlyphTableCompanion.insert(
+                    pageNumber: g['p'] as int,
+                    lineNumber: g['l'] as int,
+                    surahId: g['s'] as int,
+                    ayahNumber: g['a'] as int,
+                    position: g['n'] as int,
+                    minX: g['x1'] as int,
+                    maxX: g['x2'] as int,
+                    minY: g['y1'] as int,
+                    maxY: g['y2'] as int,
+                    riwayaId: 1,
+                  ),
+                )
+                .toList(),
+          );
+        });
+      }
+      debugPrint('[SEED] Inserted ${glyphs.length} glyphs');
+    } catch (e) {
+      debugPrint('[SEED] ERROR seeding glyphs: $e');
+    }
+  }
+
+  Future<void> _seedAyahTextIfNeeded() async {
+    try {
+      final count = await ayahTextDao.count();
+      if (count > 0) {
+        debugPrint('[SEED] Ayah text already seeded ($count)');
+        return;
+      }
+
+      final jsonStr = await rootBundle.loadString(
+        'assets/metadata/qaloon_ayah_text.json',
+      );
+      final List<dynamic> ayahs = json.decode(jsonStr);
+
+      const batchSize = 500;
+      for (int i = 0; i < ayahs.length; i += batchSize) {
+        final chunk = ayahs.skip(i).take(batchSize);
+        await batch((b) {
+          b.insertAll(
+            ayahTextTable,
+            chunk
+                .map(
+                  (a) => AyahTextTableCompanion.insert(
+                    surahId: a['s'] as int,
+                    ayahNumber: a['a'] as int,
+                    pageNumber: a['p'] as int,
+                    text: a['t'] as String,
+                  ),
+                )
+                .toList(),
+          );
+        });
+      }
+      debugPrint('[SEED] Inserted ${ayahs.length} ayah texts');
+    } catch (e) {
+      debugPrint('[SEED] ERROR seeding ayah text: $e');
+    }
+  }
+
 }
