@@ -90,17 +90,23 @@ class PageDownloadNotifier extends StateNotifier<PageDownloadState> {
           lastDownloadedPage: downloadedPage,
         );
       },
-      onDone: () {
+      onDone: () async {
+        // Verify actual downloaded count — don't trust the stream alone.
+        final actualCount =
+            await _service.downloadedPageCount(RiwayaKeys.qaloun);
+        final allDone = actualCount >= kTotalPages;
         state = state.copyWith(
           isDownloading: false,
-          isComplete: true,
-          progress: 1.0,
-          lastDownloadedPage: kTotalPages,
+          isComplete: allDone,
+          progress: allDone ? 1.0 : actualCount / kTotalPages,
+          lastDownloadedPage: actualCount,
+          error: allDone ? null : 'تم تحميل $actualCount من $kTotalPages صفحة',
         );
-        debugPrint('[DOWNLOAD] Complete — all $kTotalPages pages available.');
-        // Mark riwaya as fully downloaded in DB.
-        final db = _ref.read(appDatabaseProvider);
-        db.riwayaDao.markDownloaded(kQalounRiwayaId);
+        debugPrint('[DOWNLOAD] Done — $actualCount/$kTotalPages pages.');
+        if (allDone) {
+          final db = _ref.read(appDatabaseProvider);
+          db.riwayaDao.markDownloaded(kQalounRiwayaId);
+        }
       },
       onError: (e) {
         debugPrint('[DOWNLOAD] Error: $e');
