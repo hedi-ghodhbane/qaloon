@@ -1,8 +1,8 @@
 /// Total pages in a standard Mushaf.
 const kTotalPages = 604;
 
-/// Default image native width for Qaloun images from maknon/Quran (1110px PNGs).
-const kQalounImageNativeWidth = 1110;
+/// Default image native width for Qaloun images (GoldenQuranRes 1260px PNGs).
+const kQalounImageNativeWidth = 1260;
 
 /// Default Riwaya ID for Qaloun.
 const kQalounRiwayaId = 1;

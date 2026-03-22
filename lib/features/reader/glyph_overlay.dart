@@ -23,7 +23,10 @@ class GlyphOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Stack with no size — only Positioned children are hit-testable.
+    // Taps between glyphs pass through to the image layer below.
     return Stack(
+      clipBehavior: Clip.none,
       children: glyphs.map((glyph) {
         final key = glyph.ayahKey;
         final isSelected = selectedAyahs.contains(key);
@@ -35,6 +38,7 @@ class GlyphOverlay extends StatelessWidget {
           width: glyph.rect.width,
           height: glyph.rect.height,
           child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
             onTap: () => onTap(glyph),
             onLongPress: () => onLongPress(glyph),
             child: _AyahOverlayBox(
@@ -60,12 +64,20 @@ class _AyahOverlayBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isHidden) {
-      return const ColoredBox(color: AppColors.hiddenOverlay);
+      return const DecoratedBox(
+        decoration: BoxDecoration(color: Color(0xFFF5F0E8)),
+      );
     }
     if (isSelected) {
-      return const ColoredBox(color: AppColors.goldHighlight);
+      return DecoratedBox(
+        decoration: BoxDecoration(
+          color: const Color(0x30CDA34F),
+          border: Border.all(color: const Color(0x80CDA34F), width: 1.5),
+          borderRadius: BorderRadius.circular(4),
+        ),
+      );
     }
-    // Invisible tap region.
-    return const SizedBox.shrink();
+    // Invisible but hit-testable tap region.
+    return const SizedBox.expand();
   }
 }

@@ -2727,6 +2727,18 @@ class $AyahTextTableTable extends AyahTextTable
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _textNormalizedMeta = const VerificationMeta(
+    'textNormalized',
+  );
+  @override
+  late final GeneratedColumn<String> textNormalized = GeneratedColumn<String>(
+    'text_normalized',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -2734,6 +2746,7 @@ class $AyahTextTableTable extends AyahTextTable
     ayahNumber,
     pageNumber,
     ayahText,
+    textNormalized,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2782,6 +2795,15 @@ class $AyahTextTableTable extends AyahTextTable
     } else if (isInserting) {
       context.missing(_ayahTextMeta);
     }
+    if (data.containsKey('text_normalized')) {
+      context.handle(
+        _textNormalizedMeta,
+        textNormalized.isAcceptableOrUnknown(
+          data['text_normalized']!,
+          _textNormalizedMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -2811,6 +2833,10 @@ class $AyahTextTableTable extends AyahTextTable
         DriftSqlType.string,
         data['${effectivePrefix}ayah_text'],
       )!,
+      textNormalized: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}text_normalized'],
+      )!,
     );
   }
 
@@ -2827,12 +2853,16 @@ class AyahTextTableData extends DataClass
   final int ayahNumber;
   final int pageNumber;
   final String ayahText;
+
+  /// Ayah text with all tashkeel/diacritics stripped for search matching.
+  final String textNormalized;
   const AyahTextTableData({
     required this.id,
     required this.surahId,
     required this.ayahNumber,
     required this.pageNumber,
     required this.ayahText,
+    required this.textNormalized,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2842,6 +2872,7 @@ class AyahTextTableData extends DataClass
     map['ayah_number'] = Variable<int>(ayahNumber);
     map['page_number'] = Variable<int>(pageNumber);
     map['ayah_text'] = Variable<String>(ayahText);
+    map['text_normalized'] = Variable<String>(textNormalized);
     return map;
   }
 
@@ -2852,6 +2883,7 @@ class AyahTextTableData extends DataClass
       ayahNumber: Value(ayahNumber),
       pageNumber: Value(pageNumber),
       ayahText: Value(ayahText),
+      textNormalized: Value(textNormalized),
     );
   }
 
@@ -2866,6 +2898,7 @@ class AyahTextTableData extends DataClass
       ayahNumber: serializer.fromJson<int>(json['ayahNumber']),
       pageNumber: serializer.fromJson<int>(json['pageNumber']),
       ayahText: serializer.fromJson<String>(json['ayahText']),
+      textNormalized: serializer.fromJson<String>(json['textNormalized']),
     );
   }
   @override
@@ -2877,6 +2910,7 @@ class AyahTextTableData extends DataClass
       'ayahNumber': serializer.toJson<int>(ayahNumber),
       'pageNumber': serializer.toJson<int>(pageNumber),
       'ayahText': serializer.toJson<String>(ayahText),
+      'textNormalized': serializer.toJson<String>(textNormalized),
     };
   }
 
@@ -2886,12 +2920,14 @@ class AyahTextTableData extends DataClass
     int? ayahNumber,
     int? pageNumber,
     String? ayahText,
+    String? textNormalized,
   }) => AyahTextTableData(
     id: id ?? this.id,
     surahId: surahId ?? this.surahId,
     ayahNumber: ayahNumber ?? this.ayahNumber,
     pageNumber: pageNumber ?? this.pageNumber,
     ayahText: ayahText ?? this.ayahText,
+    textNormalized: textNormalized ?? this.textNormalized,
   );
   AyahTextTableData copyWithCompanion(AyahTextTableCompanion data) {
     return AyahTextTableData(
@@ -2904,6 +2940,9 @@ class AyahTextTableData extends DataClass
           ? data.pageNumber.value
           : this.pageNumber,
       ayahText: data.ayahText.present ? data.ayahText.value : this.ayahText,
+      textNormalized: data.textNormalized.present
+          ? data.textNormalized.value
+          : this.textNormalized,
     );
   }
 
@@ -2914,14 +2953,21 @@ class AyahTextTableData extends DataClass
           ..write('surahId: $surahId, ')
           ..write('ayahNumber: $ayahNumber, ')
           ..write('pageNumber: $pageNumber, ')
-          ..write('ayahText: $ayahText')
+          ..write('ayahText: $ayahText, ')
+          ..write('textNormalized: $textNormalized')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, surahId, ayahNumber, pageNumber, ayahText);
+  int get hashCode => Object.hash(
+    id,
+    surahId,
+    ayahNumber,
+    pageNumber,
+    ayahText,
+    textNormalized,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2930,7 +2976,8 @@ class AyahTextTableData extends DataClass
           other.surahId == this.surahId &&
           other.ayahNumber == this.ayahNumber &&
           other.pageNumber == this.pageNumber &&
-          other.ayahText == this.ayahText);
+          other.ayahText == this.ayahText &&
+          other.textNormalized == this.textNormalized);
 }
 
 class AyahTextTableCompanion extends UpdateCompanion<AyahTextTableData> {
@@ -2939,12 +2986,14 @@ class AyahTextTableCompanion extends UpdateCompanion<AyahTextTableData> {
   final Value<int> ayahNumber;
   final Value<int> pageNumber;
   final Value<String> ayahText;
+  final Value<String> textNormalized;
   const AyahTextTableCompanion({
     this.id = const Value.absent(),
     this.surahId = const Value.absent(),
     this.ayahNumber = const Value.absent(),
     this.pageNumber = const Value.absent(),
     this.ayahText = const Value.absent(),
+    this.textNormalized = const Value.absent(),
   });
   AyahTextTableCompanion.insert({
     this.id = const Value.absent(),
@@ -2952,6 +3001,7 @@ class AyahTextTableCompanion extends UpdateCompanion<AyahTextTableData> {
     required int ayahNumber,
     required int pageNumber,
     required String ayahText,
+    this.textNormalized = const Value.absent(),
   }) : surahId = Value(surahId),
        ayahNumber = Value(ayahNumber),
        pageNumber = Value(pageNumber),
@@ -2962,6 +3012,7 @@ class AyahTextTableCompanion extends UpdateCompanion<AyahTextTableData> {
     Expression<int>? ayahNumber,
     Expression<int>? pageNumber,
     Expression<String>? ayahText,
+    Expression<String>? textNormalized,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -2969,6 +3020,7 @@ class AyahTextTableCompanion extends UpdateCompanion<AyahTextTableData> {
       if (ayahNumber != null) 'ayah_number': ayahNumber,
       if (pageNumber != null) 'page_number': pageNumber,
       if (ayahText != null) 'ayah_text': ayahText,
+      if (textNormalized != null) 'text_normalized': textNormalized,
     });
   }
 
@@ -2978,6 +3030,7 @@ class AyahTextTableCompanion extends UpdateCompanion<AyahTextTableData> {
     Value<int>? ayahNumber,
     Value<int>? pageNumber,
     Value<String>? ayahText,
+    Value<String>? textNormalized,
   }) {
     return AyahTextTableCompanion(
       id: id ?? this.id,
@@ -2985,6 +3038,7 @@ class AyahTextTableCompanion extends UpdateCompanion<AyahTextTableData> {
       ayahNumber: ayahNumber ?? this.ayahNumber,
       pageNumber: pageNumber ?? this.pageNumber,
       ayahText: ayahText ?? this.ayahText,
+      textNormalized: textNormalized ?? this.textNormalized,
     );
   }
 
@@ -3006,6 +3060,9 @@ class AyahTextTableCompanion extends UpdateCompanion<AyahTextTableData> {
     if (ayahText.present) {
       map['ayah_text'] = Variable<String>(ayahText.value);
     }
+    if (textNormalized.present) {
+      map['text_normalized'] = Variable<String>(textNormalized.value);
+    }
     return map;
   }
 
@@ -3016,7 +3073,8 @@ class AyahTextTableCompanion extends UpdateCompanion<AyahTextTableData> {
           ..write('surahId: $surahId, ')
           ..write('ayahNumber: $ayahNumber, ')
           ..write('pageNumber: $pageNumber, ')
-          ..write('ayahText: $ayahText')
+          ..write('ayahText: $ayahText, ')
+          ..write('textNormalized: $textNormalized')
           ..write(')'))
         .toString();
   }
@@ -4488,6 +4546,7 @@ typedef $$AyahTextTableTableCreateCompanionBuilder =
       required int ayahNumber,
       required int pageNumber,
       required String ayahText,
+      Value<String> textNormalized,
     });
 typedef $$AyahTextTableTableUpdateCompanionBuilder =
     AyahTextTableCompanion Function({
@@ -4496,6 +4555,7 @@ typedef $$AyahTextTableTableUpdateCompanionBuilder =
       Value<int> ayahNumber,
       Value<int> pageNumber,
       Value<String> ayahText,
+      Value<String> textNormalized,
     });
 
 class $$AyahTextTableTableFilterComposer
@@ -4529,6 +4589,11 @@ class $$AyahTextTableTableFilterComposer
 
   ColumnFilters<String> get ayahText => $composableBuilder(
     column: $table.ayahText,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get textNormalized => $composableBuilder(
+    column: $table.textNormalized,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -4566,6 +4631,11 @@ class $$AyahTextTableTableOrderingComposer
     column: $table.ayahText,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get textNormalized => $composableBuilder(
+    column: $table.textNormalized,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$AyahTextTableTableAnnotationComposer
@@ -4595,6 +4665,11 @@ class $$AyahTextTableTableAnnotationComposer
 
   GeneratedColumn<String> get ayahText =>
       $composableBuilder(column: $table.ayahText, builder: (column) => column);
+
+  GeneratedColumn<String> get textNormalized => $composableBuilder(
+    column: $table.textNormalized,
+    builder: (column) => column,
+  );
 }
 
 class $$AyahTextTableTableTableManager
@@ -4637,12 +4712,14 @@ class $$AyahTextTableTableTableManager
                 Value<int> ayahNumber = const Value.absent(),
                 Value<int> pageNumber = const Value.absent(),
                 Value<String> ayahText = const Value.absent(),
+                Value<String> textNormalized = const Value.absent(),
               }) => AyahTextTableCompanion(
                 id: id,
                 surahId: surahId,
                 ayahNumber: ayahNumber,
                 pageNumber: pageNumber,
                 ayahText: ayahText,
+                textNormalized: textNormalized,
               ),
           createCompanionCallback:
               ({
@@ -4651,12 +4728,14 @@ class $$AyahTextTableTableTableManager
                 required int ayahNumber,
                 required int pageNumber,
                 required String ayahText,
+                Value<String> textNormalized = const Value.absent(),
               }) => AyahTextTableCompanion.insert(
                 id: id,
                 surahId: surahId,
                 ayahNumber: ayahNumber,
                 pageNumber: pageNumber,
                 ayahText: ayahText,
+                textNormalized: textNormalized,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

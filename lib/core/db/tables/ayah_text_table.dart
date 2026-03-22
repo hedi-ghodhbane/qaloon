@@ -6,4 +6,7 @@ class AyahTextTable extends Table {
   IntColumn get ayahNumber => integer()();
   IntColumn get pageNumber => integer()();
   TextColumn get ayahText => text()();
+
+  /// Ayah text with all tashkeel/diacritics stripped for search matching.
+  TextColumn get textNormalized => text().withDefault(const Constant(''))();
 }

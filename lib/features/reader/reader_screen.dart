@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +10,7 @@ import '../../core/constants.dart';
 import '../../core/providers/bookmark_provider.dart';
 import '../../core/providers/db_provider.dart';
 import '../../core/providers/reader_providers.dart';
+import '../../core/providers/stats_providers.dart';
 import '../../shared/theme/colors.dart';
 import 'mushaf_page_view.dart';
 
@@ -24,25 +27,33 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   final _pageViewKey = GlobalKey();
 
   // Session tracking — page counts as "read" after 20s dwell time.
-  static const _dwellDuration = Duration(seconds: 20);
+  static const _dwellSeconds = 20;
   final Set<int> _readPages = {};
   int? _sessionStartPage;
   int _currentTrackedPage = 0;
-  DateTime _pageEnteredAt = DateTime.now();
+  Timer? _dwellTimer;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    _sessionStartPage = ref.read(currentPageProvider);
-    _currentTrackedPage = _sessionStartPage!;
-    _pageEnteredAt = DateTime.now();
+    final startPage = ref.read(currentPageProvider);
+    _sessionStartPage = startPage;
+    _currentTrackedPage = startPage;
+    _startDwellTimer();
+
+    // Listen for page changes from the provider (not in build).
+    ref.listenManual(currentPageProvider, (prev, next) {
+      if (next != _currentTrackedPage) {
+        _onPageChanged(next);
+      }
+    });
   }
 
   @override
   void dispose() {
-    _checkDwellAndMark();
+    _dwellTimer?.cancel();
     _saveSession();
     WidgetsBinding.instance.removeObserver(this);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -53,30 +64,30 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive) {
-      _checkDwellAndMark();
+      _dwellTimer?.cancel();
       _saveSession();
     } else if (state == AppLifecycleState.resumed) {
-      // Reset dwell timer when coming back.
-      _pageEnteredAt = DateTime.now();
+      _startDwellTimer();
     }
   }
 
-  /// Mark current page as read if user stayed ≥ 20s.
-  void _checkDwellAndMark() {
-    final elapsed = DateTime.now().difference(_pageEnteredAt);
-    if (elapsed >= _dwellDuration && _currentTrackedPage > 0) {
-      _readPages.add(_currentTrackedPage);
-      debugPrint('[READ] Page $_currentTrackedPage marked as read '
-          '(${elapsed.inSeconds}s)');
-    }
+  void _startDwellTimer() {
+    _dwellTimer?.cancel();
+    _dwellTimer = Timer(Duration(seconds: _dwellSeconds), () {
+      if (_currentTrackedPage > 0) {
+        _readPages.add(_currentTrackedPage);
+        debugPrint('[READ] Page $_currentTrackedPage marked as read');
+        // Save immediately so stats update in real-time.
+        _saveSession();
+      }
+    });
   }
 
-  /// Called when user swipes to a new page.
   void _onPageChanged(int newPage) {
-    if (newPage == _currentTrackedPage) return;
-    _checkDwellAndMark();
+    // Cancel old timer — page wasn't read long enough.
+    _dwellTimer?.cancel();
     _currentTrackedPage = newPage;
-    _pageEnteredAt = DateTime.now();
+    _startDwellTimer();
   }
 
   void _saveSession() {
@@ -97,6 +108,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         '($_sessionStartPage→$endPage)');
     _readPages.clear();
     _sessionStartPage = ref.read(currentPageProvider);
+    // Invalidate stats so they refresh if the stats screen is open.
+    ref.invalidate(readingStatsProvider(riwayaId));
   }
 
   void _toggleOverlay() {
@@ -109,9 +122,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final riwayaId = ref.watch(currentRiwayaIdProvider);
     final bookmark = ref.watch(bookmarkNotifierProvider);
 
-    // Track page changes for dwell-time stats.
-    _onPageChanged(currentPage);
-
     final isBookmarked = bookmark.whenOrNull(
           data: (b) => b?.pageNumber == currentPage,
         ) ??
@@ -119,11 +129,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: GestureDetector(
-        onTap: _toggleOverlay,
-        child: Stack(
+      body: Stack(
           children: [
             MushafPageView(
+              onBackgroundTap: _toggleOverlay,
               key: _pageViewKey,
               initialPage: currentPage,
               riwayaId: riwayaId,
@@ -236,7 +245,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
             ],
           ],
         ),
-      ),
     );
   }
 

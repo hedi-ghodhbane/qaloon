@@ -11,6 +11,7 @@ class MushafPageView extends ConsumerStatefulWidget {
   final String riwayaKey;
   final int imageNativeWidth;
   final bool isBundled;
+  final VoidCallback? onBackgroundTap;
 
   const MushafPageView({
     super.key,
@@ -19,6 +20,7 @@ class MushafPageView extends ConsumerStatefulWidget {
     required this.riwayaKey,
     required this.imageNativeWidth,
     this.isBundled = false,
+    this.onBackgroundTap,
   });
 
   @override
@@ -69,6 +71,7 @@ class _MushafPageViewState extends ConsumerState<MushafPageView> {
             riwayaKey: widget.riwayaKey,
             imageNativeWidth: widget.imageNativeWidth,
             isBundled: widget.isBundled,
+            onBackgroundTap: widget.onBackgroundTap,
           );
         },
       ),

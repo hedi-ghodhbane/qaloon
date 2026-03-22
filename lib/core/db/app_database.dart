@@ -19,6 +19,8 @@ import 'daos/surah_dao.dart';
 import 'daos/riwaya_dao.dart';
 import 'daos/page_ayah_index_dao.dart';
 import 'daos/ayah_text_dao.dart';
+// Re-export normalizeArabic so it's available for seeding.
+export 'daos/ayah_text_dao.dart' show normalizeArabic;
 
 part 'app_database.g.dart';
 
@@ -164,7 +166,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 13;
 
   static QueryExecutor _openConnection() {
     return driftDatabase(name: 'quran_mushaf_v3');
@@ -199,7 +201,7 @@ class AppDatabase extends _$AppDatabase {
           isBundled: const Value(true),
           isDownloaded: const Value(true),
           downloadedAt: Value(DateTime.now()),
-          imageNativeWidth: const Value(1110),
+          imageNativeWidth: const Value(1260),
         ),
         RiwayaTableCompanion.insert(
           key: 'warsh',
@@ -334,12 +336,16 @@ class AppDatabase extends _$AppDatabase {
             ayahTextTable,
             chunk
                 .map(
-                  (a) => AyahTextTableCompanion.insert(
-                    surahId: a['s'] as int,
-                    ayahNumber: a['a'] as int,
-                    pageNumber: a['p'] as int,
-                    ayahText: a['t'] as String,
-                  ),
+                  (a) {
+                    final text = a['t'] as String;
+                    return AyahTextTableCompanion.insert(
+                      surahId: a['s'] as int,
+                      ayahNumber: a['a'] as int,
+                      pageNumber: a['p'] as int,
+                      ayahText: text,
+                      textNormalized: Value(normalizeArabic(text)),
+                    );
+                  },
                 )
                 .toList(),
           );

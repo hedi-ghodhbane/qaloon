@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../core/models/page_glyph.dart';
+import '../../core/providers/bookmark_provider.dart';
 import '../../core/providers/reader_providers.dart';
 import '../../shared/widgets/loading_indicator.dart';
 import 'glyph_overlay.dart';
@@ -16,6 +17,7 @@ class MushafPage extends ConsumerStatefulWidget {
   final String riwayaKey;
   final int imageNativeWidth;
   final bool isBundled;
+  final VoidCallback? onBackgroundTap;
 
   const MushafPage({
     super.key,
@@ -24,6 +26,7 @@ class MushafPage extends ConsumerStatefulWidget {
     required this.riwayaKey,
     required this.imageNativeWidth,
     this.isBundled = false,
+    this.onBackgroundTap,
   });
 
   @override
@@ -48,7 +51,7 @@ class _MushafPageState extends ConsumerState<MushafPage> {
 
   /// Asset path for bundled riwaya pages.
   String get _assetPath =>
-      'assets/pages/${widget.riwayaKey}/${widget.pageNumber}.png';
+      'assets/pages/${widget.riwayaKey}_golden/${widget.pageNumber}.png';
 
   Future<void> _resolveImagePath() async {
     final dir = await getApplicationDocumentsDirectory();
@@ -95,10 +98,17 @@ class _MushafPageState extends ConsumerState<MushafPage> {
           children: [
             ListTile(
               leading: const Icon(Icons.bookmark_outline),
-              title: const Text('حفظ علامة هنا'),
+              title: Text('حفظ علامة — ${glyph.surahId}:${glyph.ayahNumber}'),
               onTap: () {
                 Navigator.pop(ctx);
-                // Bookmark handled by parent.
+                ref
+                    .read(bookmarkNotifierProvider.notifier)
+                    .setBookmark(
+                      pageNumber: widget.pageNumber,
+                      surahId: glyph.surahId,
+                      ayahNumber: glyph.ayahNumber,
+                      riwayaId: widget.riwayaId,
+                    );
               },
             ),
             ListTile(
@@ -148,19 +158,42 @@ class _MushafPageState extends ConsumerState<MushafPage> {
     return SizedBox.expand(child: Image.file(imageFile, fit: BoxFit.contain));
   }
 
+  /// Compute the offset and scale for BoxFit.contain within the given box.
+  /// Returns (offsetX, offsetY, scale).
+  (double, double, double) _containFit(double boxW, double boxH) {
+    const imgW = 1260.0; // native image width (GoldenQuranRes)
+    const imgH = 1969.0; // native image height
+    final scaleW = boxW / imgW;
+    final scaleH = boxH / imgH;
+    final scale = scaleW < scaleH ? scaleW : scaleH;
+    final renderedW = imgW * scale;
+    final renderedH = imgH * scale;
+    final offsetX = (boxW - renderedW) / 2;
+    final offsetY = (boxH - renderedH) / 2;
+    return (offsetX, offsetY, scale);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!_pathReady) return const LoadingIndicator();
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final screenWidth = constraints.maxWidth;
+        final boxW = constraints.maxWidth;
+        final boxH = constraints.maxHeight;
+        final (offsetX, offsetY, scale) = _containFit(boxW, boxH);
+
+        final nativeWidth = widget.imageNativeWidth;
+        // scale = containFit scale. Glyphs are in native image coords,
+        // so just multiply by scale to get screen coords, then add offset.
+        final glyphScale = scale;
+
         final glyphsAsync = ref.watch(
           glyphsForPageProvider((
             pageNumber: widget.pageNumber,
             riwayaId: widget.riwayaId,
-            screenWidth: screenWidth,
-            imageNativeWidth: widget.imageNativeWidth,
+            screenWidth: nativeWidth.toDouble(),
+            imageNativeWidth: nativeWidth,
           )),
         );
 
@@ -169,16 +202,47 @@ class _MushafPageState extends ConsumerState<MushafPage> {
               ColoredBox(color: Colors.white, child: _buildPageImage()),
           error: (e, _) => Center(child: Text('خطأ: $e')),
           data: (glyphs) {
+            // Map raw glyph coords to screen space using exact x1,y1,x2,y2.
+            final mapped = glyphs
+                .map(
+                  (g) => PageGlyph(
+                    id: g.id,
+                    pageNumber: g.pageNumber,
+                    lineNumber: g.lineNumber,
+                    surahId: g.surahId,
+                    ayahNumber: g.ayahNumber,
+                    position: g.position,
+                    rect: Rect.fromLTRB(
+                      g.rect.left * glyphScale + offsetX,
+                      g.rect.top * glyphScale + offsetY,
+                      g.rect.right * glyphScale + offsetX,
+                      g.rect.bottom * glyphScale + offsetY,
+                    ),
+                  ),
+                )
+                .toList();
+
             return Stack(
               children: [
-                _buildPageImage(),
+                // Bottom layer: catch taps on empty areas.
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: widget.onBackgroundTap,
+                  child: const SizedBox.expand(),
+                ),
+                // Highlight layer — BEHIND the image so highlights
+                // only show through the opaque (text) areas of the
+                // transparent PNG. Transparent areas stay clean.
                 GlyphOverlay(
-                  glyphs: glyphs,
+                  glyphs: mapped,
                   selectedAyahs: _selectedAyahs,
                   hiddenAyahs: _hiddenAyahs,
                   onTap: _onAyahTap,
                   onLongPress: _onAyahLongPress,
                 ),
+                // Image layer on top — transparent PNG lets highlights
+                // bleed through text. IgnorePointer so taps reach glyphs below.
+                IgnorePointer(child: _buildPageImage()),
               ],
             );
           },
