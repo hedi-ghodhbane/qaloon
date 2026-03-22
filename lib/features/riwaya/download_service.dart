@@ -7,12 +7,12 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../core/constants.dart';
 
-/// ZIP URL for the entire GoldenQuranRes repo (contains all Qaloun images).
+/// ZIP URL for Qaloun pages 31-604 (hosted on our GitHub release — ~281MB).
 const _kZipUrl =
-    'https://github.com/salemoh/GoldenQuranRes/archive/refs/heads/master.zip';
+    'https://github.com/hedi-ghodhbane/qaloon/releases/download/pages-v1/qaloun_pages_31_604.zip';
 
-/// Path inside the ZIP where Qaloun 1260 images live.
-const _kZipImagePrefix = 'GoldenQuranRes-master/images/Qaloon_new_1260/';
+/// Pages in our release ZIP are at the root: page031.png, page032.png, etc.
+const _kZipImagePrefix = '';
 
 class DownloadService {
   final Dio _dio;
@@ -109,13 +109,11 @@ class DownloadService {
     // Decode ZIP in an isolate for performance.
     final archive = await compute(_decodeZip, bytes);
 
-    // Filter to only the Qaloun page images we need.
+    // Filter to only page PNG files.
     final pageFiles = archive.files.where((f) {
-      if (f.isFile && f.name.startsWith(_kZipImagePrefix)) {
-        final fileName = f.name.substring(_kZipImagePrefix.length);
-        return fileName.startsWith('page') && fileName.endsWith('.png');
-      }
-      return false;
+      if (!f.isFile) return false;
+      final name = f.name;
+      return name.startsWith('page') && name.endsWith('.png');
     }).toList();
 
     debugPrint('[DOWNLOAD] Found ${pageFiles.length} page images in ZIP');
@@ -124,9 +122,8 @@ class DownloadService {
     var extracted = 0;
 
     for (final file in pageFiles) {
-      final fileName = file.name.substring(_kZipImagePrefix.length);
       // Convert pageNNN.png → N.png (e.g. page042.png → 42.png)
-      final match = RegExp(r'page(\d+)\.png').firstMatch(fileName);
+      final match = RegExp(r'page(\d+)\.png').firstMatch(file.name);
       if (match == null) continue;
 
       final pageNum = int.parse(match.group(1)!);
