@@ -119,7 +119,7 @@ class _AyahResultTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Build highlighted text
-    final text = ayah.text;
+    final text = ayah.ayahText;
     final spans = _buildHighlightedSpans(text, query);
 
     return InkWell(

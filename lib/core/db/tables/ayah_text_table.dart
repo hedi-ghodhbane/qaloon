@@ -5,5 +5,5 @@ class AyahTextTable extends Table {
   IntColumn get surahId => integer()();
   IntColumn get ayahNumber => integer()();
   IntColumn get pageNumber => integer()();
-  TextColumn get text => text()();
+  TextColumn get ayahText => text()();
 }

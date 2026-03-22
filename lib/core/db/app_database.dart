@@ -338,7 +338,7 @@ class AppDatabase extends _$AppDatabase {
                     surahId: a['s'] as int,
                     ayahNumber: a['a'] as int,
                     pageNumber: a['p'] as int,
-                    text: a['t'] as String,
+                    ayahText: a['t'] as String,
                   ),
                 )
                 .toList(),

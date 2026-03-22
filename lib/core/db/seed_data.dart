@@ -4,8 +4,6 @@ import 'package:drift/drift.dart';
 import 'package:flutter/services.dart';
 
 import 'app_database.dart';
-import 'tables/surah_table.dart';
-import 'tables/page_ayah_index_table.dart';
 
 /// Qaloun surah start pages (1-indexed). Index 0 = surah 1.
 /// Derived from standard Qaloun Mushaf print.

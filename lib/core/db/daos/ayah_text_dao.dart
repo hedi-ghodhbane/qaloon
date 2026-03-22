@@ -12,7 +12,7 @@ class AyahTextDao extends DatabaseAccessor<AppDatabase>
   /// Search ayah text containing the query string.
   Future<List<AyahTextTableData>> searchText(String query, {int limit = 30}) {
     return (select(ayahTextTable)
-          ..where((a) => a.text.contains(query))
+          ..where((a) => a.ayahText.contains(query))
           ..limit(limit))
         .get();
   }
