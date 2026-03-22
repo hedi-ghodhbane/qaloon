@@ -24,6 +24,16 @@ class GlyphOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Find the last segment per ayah (where the marker ۝ sits).
+    final lastSegment = <AyahKey, int>{};
+    for (final g in glyphs) {
+      final key = g.ayahKey;
+      final prev = lastSegment[key];
+      if (prev == null || g.position > prev) {
+        lastSegment[key] = g.position;
+      }
+    }
+
     return Stack(
       clipBehavior: Clip.none,
       children: glyphs.map((glyph) {
@@ -31,12 +41,24 @@ class GlyphOverlay extends StatelessWidget {
         final isSelected = selectedAyahs.contains(key);
         final isHidden = hiddenAyahs.contains(key);
         final isBookmarked = bookmarkedAyah == key;
+        final isLastSegment = glyph.position == lastSegment[key];
+
+        // Expand the rect vertically for hidden glyphs to cover tashkeel.
+        const hideExpand = 6.0;
+        final rect = isHidden
+            ? Rect.fromLTRB(
+                glyph.rect.left,
+                glyph.rect.top - hideExpand,
+                glyph.rect.right,
+                glyph.rect.bottom + hideExpand,
+              )
+            : glyph.rect;
 
         return Positioned(
-          left: glyph.rect.left,
-          top: glyph.rect.top,
-          width: glyph.rect.width,
-          height: glyph.rect.height,
+          left: rect.left,
+          top: rect.top,
+          width: rect.width,
+          height: rect.height,
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => onTap(glyph),
@@ -45,6 +67,7 @@ class GlyphOverlay extends StatelessWidget {
               isSelected: isSelected,
               isHidden: isHidden,
               isBookmarked: isBookmarked,
+              isLastSegment: isLastSegment,
             ),
           ),
         );
@@ -57,17 +80,25 @@ class _AyahOverlayBox extends StatelessWidget {
   final bool isSelected;
   final bool isHidden;
   final bool isBookmarked;
+  final bool isLastSegment;
 
   const _AyahOverlayBox({
     required this.isSelected,
     required this.isHidden,
     this.isBookmarked = false,
+    this.isLastSegment = false,
   });
 
   @override
   Widget build(BuildContext context) {
     if (isHidden) {
-      // White to match scaffold — rendered on top of image to cover text.
+      // Only trim the left edge on the last segment (where the marker ۝ sits).
+      if (isLastSegment) {
+        return const Padding(
+          padding: EdgeInsets.only(left: 30),
+          child: ColoredBox(color: Colors.white),
+        );
+      }
       return const ColoredBox(color: Colors.white);
     }
     if (isBookmarked) {
