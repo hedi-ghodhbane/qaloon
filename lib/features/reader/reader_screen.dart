@@ -23,9 +23,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   bool _showOverlay = true;
   final _pageViewKey = GlobalKey();
 
-  // Session tracking
-  final Set<int> _visitedPages = {};
+  // Session tracking — page counts as "read" after 20s dwell time.
+  static const _dwellDuration = Duration(seconds: 20);
+  final Set<int> _readPages = {};
   int? _sessionStartPage;
+  int _currentTrackedPage = 0;
+  DateTime _pageEnteredAt = DateTime.now();
 
   @override
   void initState() {
@@ -33,11 +36,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     WidgetsBinding.instance.addObserver(this);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     _sessionStartPage = ref.read(currentPageProvider);
-    _visitedPages.add(_sessionStartPage!);
+    _currentTrackedPage = _sessionStartPage!;
+    _pageEnteredAt = DateTime.now();
   }
 
   @override
   void dispose() {
+    _checkDwellAndMark();
     _saveSession();
     WidgetsBinding.instance.removeObserver(this);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -48,16 +53,37 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive) {
+      _checkDwellAndMark();
       _saveSession();
+    } else if (state == AppLifecycleState.resumed) {
+      // Reset dwell timer when coming back.
+      _pageEnteredAt = DateTime.now();
     }
   }
 
+  /// Mark current page as read if user stayed ≥ 20s.
+  void _checkDwellAndMark() {
+    final elapsed = DateTime.now().difference(_pageEnteredAt);
+    if (elapsed >= _dwellDuration && _currentTrackedPage > 0) {
+      _readPages.add(_currentTrackedPage);
+      debugPrint('[READ] Page $_currentTrackedPage marked as read '
+          '(${elapsed.inSeconds}s)');
+    }
+  }
+
+  /// Called when user swipes to a new page.
+  void _onPageChanged(int newPage) {
+    if (newPage == _currentTrackedPage) return;
+    _checkDwellAndMark();
+    _currentTrackedPage = newPage;
+    _pageEnteredAt = DateTime.now();
+  }
+
   void _saveSession() {
-    if (_visitedPages.isEmpty || _sessionStartPage == null) return;
+    if (_readPages.isEmpty || _sessionStartPage == null) return;
     final riwayaId = ref.read(currentRiwayaIdProvider);
     final endPage = ref.read(currentPageProvider);
-    final pagesRead = _visitedPages.length;
-    if (pagesRead == 0) return;
+    final pagesRead = _readPages.length;
 
     final db = ref.read(appDatabaseProvider);
     db.readingSessionDao.insertSession(
@@ -69,10 +95,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     );
     debugPrint('[SESSION] Saved: $pagesRead pages read '
         '($_sessionStartPage→$endPage)');
-    // Reset for next session
-    _visitedPages.clear();
+    _readPages.clear();
     _sessionStartPage = ref.read(currentPageProvider);
-    _visitedPages.add(_sessionStartPage!);
   }
 
   void _toggleOverlay() {
@@ -85,8 +109,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final riwayaId = ref.watch(currentRiwayaIdProvider);
     final bookmark = ref.watch(bookmarkNotifierProvider);
 
-    // Track visited pages for stats
-    _visitedPages.add(currentPage);
+    // Track page changes for dwell-time stats.
+    _onPageChanged(currentPage);
 
     final isBookmarked = bookmark.whenOrNull(
           data: (b) => b?.pageNumber == currentPage,
