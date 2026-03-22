@@ -22,6 +22,7 @@ dependencies:
   collection: any
   shared_preferences: any
   share_plus: any
+  archive: ^4.0.9
 
 dev_dependencies:
   flutter_test:

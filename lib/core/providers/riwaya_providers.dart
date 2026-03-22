@@ -83,26 +83,35 @@ class PageDownloadNotifier extends StateNotifier<PageDownloadState> {
 
     _sub = stream.listen(
       (progress) {
-        final downloadedPage =
-            kBundledPages + (progress * (kTotalPages - kBundledPages)).round();
+        // Estimate which page is available based on progress.
+        // 0.0–0.7 = downloading ZIP (no pages available yet).
+        // 0.7–1.0 = extracting (pages become available).
+        final int lastPage;
+        if (progress <= 0.7) {
+          lastPage = kBundledPages; // Still downloading ZIP.
+        } else {
+          // Extraction phase: 0.7→1.0 maps to page 31→604.
+          final extractProgress = (progress - 0.7) / 0.3;
+          lastPage = kBundledPages +
+              (extractProgress * (kTotalPages - kBundledPages)).round();
+        }
         state = state.copyWith(
           progress: progress,
-          lastDownloadedPage: downloadedPage,
+          lastDownloadedPage: lastPage,
         );
       },
       onDone: () async {
-        // Verify actual downloaded count — don't trust the stream alone.
         final actualCount =
             await _service.downloadedPageCount(RiwayaKeys.qaloun);
-        final allDone = actualCount >= kTotalPages;
+        final allDone = actualCount >= (kTotalPages - kBundledPages);
         state = state.copyWith(
           isDownloading: false,
           isComplete: allDone,
           progress: allDone ? 1.0 : actualCount / kTotalPages,
-          lastDownloadedPage: actualCount,
+          lastDownloadedPage: allDone ? kTotalPages : kBundledPages + actualCount,
           error: allDone ? null : 'تم تحميل $actualCount من $kTotalPages صفحة',
         );
-        debugPrint('[DOWNLOAD] Done — $actualCount/$kTotalPages pages.');
+        debugPrint('[DOWNLOAD] Done — $actualCount pages extracted.');
         if (allDone) {
           final db = _ref.read(appDatabaseProvider);
           db.riwayaDao.markDownloaded(kQalounRiwayaId);
