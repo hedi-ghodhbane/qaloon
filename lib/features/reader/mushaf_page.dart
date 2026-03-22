@@ -75,9 +75,11 @@ class _MushafPageState extends ConsumerState<MushafPage> {
         return;
       }
       if (_selectedAyahs.contains(key)) {
-        _selectedAyahs.remove(key);
+        _selectedAyahs.clear();
       } else {
-        _selectedAyahs.add(key);
+        _selectedAyahs
+          ..clear()
+          ..add(key);
       }
     });
   }
@@ -133,14 +135,39 @@ class _MushafPageState extends ConsumerState<MushafPage> {
                 _hideAllOnPage();
               },
             ),
+            if (_hiddenAyahs.isNotEmpty)
+              ListTile(
+                leading: const Icon(Icons.visibility_outlined),
+                title: const Text('إظهار الكل'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  setState(() => _hiddenAyahs.clear());
+                },
+              ),
           ],
         ),
       ),
     );
   }
 
+  /// Get all unique ayah keys on this page from the current glyphs.
+  Set<AyahKey> _allAyahKeysOnPage() {
+    final glyphs = ref
+        .read(glyphsForPageProvider((
+          pageNumber: widget.pageNumber,
+          riwayaId: widget.riwayaId,
+          screenWidth: widget.imageNativeWidth.toDouble(),
+          imageNativeWidth: widget.imageNativeWidth,
+        )))
+        .valueOrNull;
+    if (glyphs == null) return {};
+    return glyphs.map((g) => g.ayahKey).toSet();
+  }
+
   void _hideAllOnPage() {
-    // Will be populated after glyphs load.
+    setState(() {
+      _hiddenAyahs.addAll(_allAyahKeysOnPage());
+    });
   }
 
   Widget _buildPageImage() {
@@ -197,6 +224,16 @@ class _MushafPageState extends ConsumerState<MushafPage> {
           )),
         );
 
+        // Watch bookmark to auto-highlight the bookmarked ayah.
+        final bookmark = ref.watch(bookmarkNotifierProvider).valueOrNull;
+        AyahKey? bookmarkedAyah;
+        if (bookmark != null &&
+            bookmark.pageNumber == widget.pageNumber &&
+            bookmark.surahId != null &&
+            bookmark.ayahNumber != null) {
+          bookmarkedAyah = (bookmark.surahId!, bookmark.ayahNumber!);
+        }
+
         return glyphsAsync.when(
           loading: () =>
               ColoredBox(color: Colors.white, child: _buildPageImage()),
@@ -230,19 +267,26 @@ class _MushafPageState extends ConsumerState<MushafPage> {
                   onTap: widget.onBackgroundTap,
                   child: const SizedBox.expand(),
                 ),
-                // Highlight layer — BEHIND the image so highlights
-                // only show through the opaque (text) areas of the
-                // transparent PNG. Transparent areas stay clean.
+                // Highlight layer — BEHIND image (selected/bookmarked).
                 GlyphOverlay(
                   glyphs: mapped,
                   selectedAyahs: _selectedAyahs,
-                  hiddenAyahs: _hiddenAyahs,
+                  hiddenAyahs: const {},
+                  bookmarkedAyah: bookmarkedAyah,
                   onTap: _onAyahTap,
                   onLongPress: _onAyahLongPress,
                 ),
-                // Image layer on top — transparent PNG lets highlights
-                // bleed through text. IgnorePointer so taps reach glyphs below.
+                // Image layer.
                 IgnorePointer(child: _buildPageImage()),
+                // Hide layer — ON TOP of image (white covers text).
+                if (_hiddenAyahs.isNotEmpty)
+                  GlyphOverlay(
+                    glyphs: mapped,
+                    selectedAyahs: const {},
+                    hiddenAyahs: _hiddenAyahs,
+                    onTap: _onAyahTap,
+                    onLongPress: _onAyahLongPress,
+                  ),
               ],
             );
           },

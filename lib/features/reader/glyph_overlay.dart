@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../core/models/page_glyph.dart';
-import '../../shared/theme/colors.dart';
 
 /// State for ayah interactions: selected (highlighted) and hidden.
 typedef AyahKey = (int surahId, int ayahNumber);
@@ -9,6 +8,7 @@ class GlyphOverlay extends StatelessWidget {
   final List<PageGlyph> glyphs;
   final Set<AyahKey> selectedAyahs;
   final Set<AyahKey> hiddenAyahs;
+  final AyahKey? bookmarkedAyah;
   final ValueChanged<PageGlyph> onTap;
   final ValueChanged<PageGlyph> onLongPress;
 
@@ -17,20 +17,20 @@ class GlyphOverlay extends StatelessWidget {
     required this.glyphs,
     required this.selectedAyahs,
     required this.hiddenAyahs,
+    this.bookmarkedAyah,
     required this.onTap,
     required this.onLongPress,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Stack with no size — only Positioned children are hit-testable.
-    // Taps between glyphs pass through to the image layer below.
     return Stack(
       clipBehavior: Clip.none,
       children: glyphs.map((glyph) {
         final key = glyph.ayahKey;
         final isSelected = selectedAyahs.contains(key);
         final isHidden = hiddenAyahs.contains(key);
+        final isBookmarked = bookmarkedAyah == key;
 
         return Positioned(
           left: glyph.rect.left,
@@ -44,6 +44,7 @@ class GlyphOverlay extends StatelessWidget {
             child: _AyahOverlayBox(
               isSelected: isSelected,
               isHidden: isHidden,
+              isBookmarked: isBookmarked,
             ),
           ),
         );
@@ -55,26 +56,28 @@ class GlyphOverlay extends StatelessWidget {
 class _AyahOverlayBox extends StatelessWidget {
   final bool isSelected;
   final bool isHidden;
+  final bool isBookmarked;
 
   const _AyahOverlayBox({
     required this.isSelected,
     required this.isHidden,
+    this.isBookmarked = false,
   });
 
   @override
   Widget build(BuildContext context) {
     if (isHidden) {
+      // White to match scaffold — rendered on top of image to cover text.
+      return const ColoredBox(color: Colors.white);
+    }
+    if (isBookmarked) {
       return const DecoratedBox(
-        decoration: BoxDecoration(color: Color(0xFFF5F0E8)),
+        decoration: BoxDecoration(color: Color(0x250D7377)),
       );
     }
     if (isSelected) {
-      return DecoratedBox(
-        decoration: BoxDecoration(
-          color: const Color(0x30CDA34F),
-          border: Border.all(color: const Color(0x80CDA34F), width: 1.5),
-          borderRadius: BorderRadius.circular(4),
-        ),
+      return const DecoratedBox(
+        decoration: BoxDecoration(color: Color(0x30CDA34F)),
       );
     }
     // Invisible but hit-testable tap region.
