@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
@@ -62,6 +63,8 @@ class _MushafPageState extends ConsumerState<MushafPage> {
   }
 
   void _onAyahTap(PageGlyph glyph) {
+    debugPrint('[AYAH TAP] surah=${glyph.surahId}, ayah=${glyph.ayahNumber}, '
+        'page=${glyph.pageNumber}, rect=${glyph.rect}');
     setState(() {
       final key = glyph.ayahKey;
       if (_hiddenAyahs.contains(key)) {

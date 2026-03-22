@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/constants.dart';
 import '../../core/providers/bookmark_provider.dart';
+import '../../core/providers/db_provider.dart';
 import '../../core/providers/reader_providers.dart';
 import '../../shared/theme/colors.dart';
 import 'mushaf_page_view.dart';
@@ -16,20 +18,61 @@ class ReaderScreen extends ConsumerStatefulWidget {
   ConsumerState<ReaderScreen> createState() => _ReaderScreenState();
 }
 
-class _ReaderScreenState extends ConsumerState<ReaderScreen> {
+class _ReaderScreenState extends ConsumerState<ReaderScreen>
+    with WidgetsBindingObserver {
   bool _showOverlay = true;
   final _pageViewKey = GlobalKey();
+
+  // Session tracking
+  final Set<int> _visitedPages = {};
+  int? _sessionStartPage;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    _sessionStartPage = ref.read(currentPageProvider);
+    _visitedPages.add(_sessionStartPage!);
   }
 
   @override
   void dispose() {
+    _saveSession();
+    WidgetsBinding.instance.removeObserver(this);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      _saveSession();
+    }
+  }
+
+  void _saveSession() {
+    if (_visitedPages.isEmpty || _sessionStartPage == null) return;
+    final riwayaId = ref.read(currentRiwayaIdProvider);
+    final endPage = ref.read(currentPageProvider);
+    final pagesRead = _visitedPages.length;
+    if (pagesRead == 0) return;
+
+    final db = ref.read(appDatabaseProvider);
+    db.readingSessionDao.insertSession(
+      date: DateTime.now(),
+      startPage: _sessionStartPage!,
+      endPage: endPage,
+      pagesRead: pagesRead,
+      riwayaId: riwayaId,
+    );
+    debugPrint('[SESSION] Saved: $pagesRead pages read '
+        '($_sessionStartPage→$endPage)');
+    // Reset for next session
+    _visitedPages.clear();
+    _sessionStartPage = ref.read(currentPageProvider);
+    _visitedPages.add(_sessionStartPage!);
   }
 
   void _toggleOverlay() {
@@ -41,6 +84,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     final currentPage = ref.watch(currentPageProvider);
     final riwayaId = ref.watch(currentRiwayaIdProvider);
     final bookmark = ref.watch(bookmarkNotifierProvider);
+
+    // Track visited pages for stats
+    _visitedPages.add(currentPage);
 
     final isBookmarked = bookmark.whenOrNull(
           data: (b) => b?.pageNumber == currentPage,
@@ -107,7 +153,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                                   ? AppColors.gold
                                   : Colors.white,
                             ),
-                            onPressed: () => _toggleBookmark(currentPage, riwayaId),
+                            onPressed: () => _toggleBookmark(currentPage, riwayaId, isBookmarked),
                           ),
                           IconButton(
                             icon: const Icon(Icons.menu, color: Colors.white),
@@ -145,12 +191,17 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       _BottomAction(
-                        icon: Icons.bar_chart,
+                        icon: Icons.bookmark_outline,
+                        label: 'العلامة',
+                        onTap: _goToBookmark,
+                      ),
+                      _BottomAction(
+                        icon: Icons.bar_chart_rounded,
                         label: 'إحصائيات',
                         onTap: () => context.push('/stats'),
                       ),
                       _BottomAction(
-                        icon: Icons.library_books,
+                        icon: Icons.auto_stories_outlined,
                         label: 'الروايات',
                         onTap: () => context.push('/riwaya'),
                       ),
@@ -165,11 +216,22 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     );
   }
 
-  void _toggleBookmark(int currentPage, int riwayaId) {
-    ref.read(bookmarkNotifierProvider.notifier).setBookmark(
-          pageNumber: currentPage,
-          riwayaId: riwayaId,
-        );
+  void _toggleBookmark(int currentPage, int riwayaId, bool isBookmarked) {
+    if (isBookmarked) {
+      ref.read(bookmarkNotifierProvider.notifier).clearBookmark();
+    } else {
+      ref.read(bookmarkNotifierProvider.notifier).setBookmark(
+            pageNumber: currentPage,
+            riwayaId: riwayaId,
+          );
+    }
+  }
+
+  void _goToBookmark() {
+    final bookmark = ref.read(bookmarkNotifierProvider).valueOrNull;
+    if (bookmark != null) {
+      ref.read(currentPageProvider.notifier).setPage(bookmark.pageNumber);
+    }
   }
 }
 
@@ -191,9 +253,16 @@ class _BottomAction extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: Colors.white, size: 24),
+          Icon(icon, color: Colors.white, size: 22),
           const SizedBox(height: 4),
-          Text(label, style: const TextStyle(color: Colors.white, fontSize: 12)),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ],
       ),
     );
