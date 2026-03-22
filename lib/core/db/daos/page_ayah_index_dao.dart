@@ -40,6 +40,33 @@ class PageAyahIndexDao extends DatabaseAccessor<AppDatabase>
     return result.read(pageAyahIndexTable.pageNumber.min());
   }
 
+  /// Get the page containing a specific ayah of a surah.
+  Future<int?> getPageOfAyah(int surahId, int ayahNumber, int riwayaId) async {
+    final query = select(pageAyahIndexTable)
+      ..where(
+        (p) =>
+            p.surahId.equals(surahId) &
+            p.ayahNumber.equals(ayahNumber) &
+            p.riwayaId.equals(riwayaId),
+      )
+      ..limit(1);
+
+    final results = await query.get();
+    if (results.isNotEmpty) return results.first.pageNumber;
+
+    // Fallback: find the page where this ayah would be
+    // (last page with ayahNumber <= requested)
+    final fallback = selectOnly(pageAyahIndexTable)
+      ..addColumns([pageAyahIndexTable.pageNumber.max()])
+      ..where(
+        pageAyahIndexTable.surahId.equals(surahId) &
+            pageAyahIndexTable.ayahNumber.isSmallerOrEqualValue(ayahNumber) &
+            pageAyahIndexTable.riwayaId.equals(riwayaId),
+      );
+    final result = await fallback.getSingle();
+    return result.read(pageAyahIndexTable.pageNumber.max());
+  }
+
   Future<void> insertEntries(List<PageAyahIndexTableCompanion> entries) {
     return batch((b) => b.insertAll(pageAyahIndexTable, entries));
   }

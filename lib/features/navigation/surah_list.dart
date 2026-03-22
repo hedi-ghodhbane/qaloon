@@ -30,16 +30,61 @@ class _SurahListState extends ConsumerState<SurahList> {
     super.dispose();
   }
 
+  /// Parse ayah reference. Supports:
+  /// "2:255", "2 255", "البقرة 255", "البقرة:255", "baqarah 255"
+  ({int surahId, int ayahNumber})? _parseAyahRef(
+    List<SurahTableData> surahs,
+  ) {
+    final q = _query.trim();
+    if (q.isEmpty) return null;
+
+    // "number:number" or "number number"
+    final numPattern = RegExp(r'^(\d+)\s*[:：\s]\s*(\d+)$');
+    final numMatch = numPattern.firstMatch(q);
+    if (numMatch != null) {
+      final sid = int.parse(numMatch.group(1)!);
+      final ayah = int.parse(numMatch.group(2)!);
+      if (sid >= 1 && sid <= 114) {
+        return (surahId: sid, ayahNumber: ayah);
+      }
+    }
+
+    // "text:number" or "text number"
+    final textPattern = RegExp(r'^(.+?)\s*[:：\s]\s*(\d+)$');
+    final textMatch = textPattern.firstMatch(q);
+    if (textMatch != null) {
+      final name = textMatch.group(1)!.trim().toLowerCase();
+      final ayah = int.parse(textMatch.group(2)!);
+      for (final s in surahs) {
+        if (s.nameArabic.contains(name) ||
+            s.nameTransliterated.toLowerCase().contains(name)) {
+          return (surahId: s.id, ayahNumber: ayah);
+        }
+      }
+    }
+    return null;
+  }
+
   List<SurahTableData> _filter(List<SurahTableData> surahs) {
     if (_query.isEmpty) return surahs;
     final q = _query.toLowerCase();
-    // Allow searching by number (e.g. "2" → Al-Baqarah)
     final asNumber = int.tryParse(q);
     return surahs.where((s) {
       if (asNumber != null && s.id == asNumber) return true;
       return s.nameArabic.contains(_query) ||
           s.nameTransliterated.toLowerCase().contains(q);
     }).toList();
+  }
+
+  Future<void> _goToAyah(int surahId, int ayahNumber) async {
+    final riwayaId = ref.read(currentRiwayaIdProvider);
+    final db = ref.read(appDatabaseProvider);
+    final page = await db.pageAyahIndexDao
+        .getPageOfAyah(surahId, ayahNumber, riwayaId);
+    if (page != null && mounted) {
+      ref.read(currentPageProvider.notifier).setPage(page);
+      if (mounted) context.go('/');
+    }
   }
 
   @override
@@ -51,6 +96,19 @@ class _SurahListState extends ConsumerState<SurahList> {
       error: (e, _) => Center(child: Text('$e')),
       data: (allSurahs) {
         final surahs = _filter(allSurahs);
+        final ayahRef = _parseAyahRef(allSurahs);
+
+        // Find surah name for ayah ref display
+        String? ayahLabel;
+        if (ayahRef != null) {
+          final match = allSurahs
+              .where((s) => s.id == ayahRef.surahId)
+              .firstOrNull;
+          if (match != null) {
+            ayahLabel = '${match.nameArabic} : ${ayahRef.ayahNumber}';
+          }
+        }
+
         return Column(
           children: [
             // Search bar
@@ -60,7 +118,7 @@ class _SurahListState extends ConsumerState<SurahList> {
                 controller: _searchController,
                 onChanged: (v) => setState(() => _query = v),
                 decoration: InputDecoration(
-                  hintText: 'ابحث عن سورة...',
+                  hintText: 'سورة أو آية... (مثال: 2:255)',
                   prefixIcon: const Icon(Icons.search, size: 20),
                   suffixIcon: _query.isNotEmpty
                       ? IconButton(
@@ -81,9 +139,47 @@ class _SurahListState extends ConsumerState<SurahList> {
                 ),
               ),
             ),
+            // Ayah reference action
+            if (ayahRef != null && ayahLabel != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: Material(
+                  color: AppColors.gold.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => _goToAyah(ayahRef.surahId, ayahRef.ayahNumber),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.my_location, size: 20,
+                              color: AppColors.gold),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'الانتقال إلى $ayahLabel',
+                              style: const TextStyle(
+                                fontFamily: 'Noto Naskh Arabic',
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          const Icon(Icons.arrow_forward_ios, size: 14,
+                              color: AppColors.textSecondary),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             // Results
             Expanded(
-              child: surahs.isEmpty
+              child: surahs.isEmpty && ayahRef == null
                   ? const Center(child: Text('لا توجد نتائج'))
                   : ListView.separated(
                       padding: const EdgeInsets.symmetric(vertical: 8),
