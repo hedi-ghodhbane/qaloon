@@ -28,6 +28,13 @@ class ReadingSessionDao extends DatabaseAccessor<AppDatabase>
     );
   }
 
+  Future<List<ReadingSessionTableData>> getAllSessions(int riwayaId) {
+    return (select(readingSessionTable)
+          ..where((s) => s.riwayaId.equals(riwayaId))
+          ..orderBy([(s) => OrderingTerm.desc(s.date)]))
+        .get();
+  }
+
   Future<int> pagesReadOnDate(DateTime date, int riwayaId) async {
     final startOfDay = DateTime(date.year, date.month, date.day);
     final endOfDay = startOfDay.add(const Duration(days: 1));

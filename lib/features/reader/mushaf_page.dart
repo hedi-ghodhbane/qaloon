@@ -305,23 +305,43 @@ class _MushafPageState extends ConsumerState<MushafPage> {
   }
 
   Widget _buildPageImage() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    Widget image;
     if (_isBundledPage) {
-      return SizedBox.expand(
+      image = SizedBox.expand(
         child: Image.asset(_assetPath, fit: BoxFit.contain),
       );
+    } else {
+      final imageFile = File(_imagePath!);
+      if (imageFile.existsSync() && imageFile.lengthSync() > 0) {
+        image = SizedBox.expand(
+          child: Image.file(imageFile, fit: BoxFit.contain),
+        );
+      } else {
+        // Page not yet downloaded — show progress.
+        return _DownloadingPagePlaceholder(
+          pageNumber: widget.pageNumber,
+          onAvailable: () {
+            if (mounted) setState(() {});
+          },
+        );
+      }
     }
-    final imageFile = File(_imagePath!);
-    if (imageFile.existsSync() && imageFile.lengthSync() > 0) {
-      return SizedBox.expand(child: Image.file(imageFile, fit: BoxFit.contain));
+
+    // In dark mode, invert the page colors (white bg → black, dark text → light).
+    if (isDark) {
+      return ColorFiltered(
+        colorFilter: const ColorFilter.matrix(<double>[
+          -1, 0, 0, 0, 255, //
+          0, -1, 0, 0, 255, //
+          0, 0, -1, 0, 255, //
+          0, 0, 0, 1, 0, //
+        ]),
+        child: image,
+      );
     }
-    // Page not yet downloaded — show progress.
-    return _DownloadingPagePlaceholder(
-      pageNumber: widget.pageNumber,
-      onAvailable: () {
-        // Re-resolve the path to trigger rebuild.
-        if (mounted) setState(() {});
-      },
-    );
+    return image;
   }
 
   /// Compute the offset and scale for BoxFit.contain within the given box.

@@ -88,4 +88,93 @@ abstract final class AppTheme {
           ),
         ),
       );
+
+  static ThemeData get dark => ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: AppColors.primary,
+          primary: AppColors.primaryLight,
+          brightness: Brightness.dark,
+          surface: const Color(0xFF1A1A1A),
+        ),
+        scaffoldBackgroundColor: const Color(0xFF121212),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF1E1E1E),
+          foregroundColor: Colors.white,
+          elevation: 0,
+          centerTitle: true,
+          titleTextStyle: TextStyle(
+            fontFamily: 'Noto Naskh Arabic',
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+        textTheme: const TextTheme(
+          headlineLarge: TextStyle(
+            fontFamily: 'Noto Naskh Arabic',
+            fontSize: 26,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+          headlineMedium: TextStyle(
+            fontFamily: 'Noto Naskh Arabic',
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+          bodyLarge: TextStyle(
+            fontFamily: 'Noto Naskh Arabic',
+            fontSize: 16,
+            color: Color(0xFFE0E0E0),
+            height: 1.6,
+          ),
+          bodyMedium: TextStyle(
+            fontSize: 14,
+            color: Color(0xFF9E9E9E),
+            height: 1.5,
+          ),
+          labelLarge: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+            letterSpacing: 0.1,
+          ),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primaryLight,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+        ),
+        cardTheme: CardThemeData(
+          color: const Color(0xFF1E1E1E),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: Color(0xFF333333), width: 0.5),
+          ),
+        ),
+        dividerTheme: const DividerThemeData(
+          color: Color(0xFF333333),
+          thickness: 0.5,
+        ),
+        tabBarTheme: const TabBarThemeData(
+          labelStyle: TextStyle(
+            fontFamily: 'Noto Naskh Arabic',
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+          ),
+          unselectedLabelStyle: TextStyle(
+            fontFamily: 'Noto Naskh Arabic',
+            fontSize: 15,
+          ),
+        ),
+      );
 }

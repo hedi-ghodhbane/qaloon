@@ -127,8 +127,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         ) ??
         false;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? Colors.black : Colors.white,
       body: Stack(
           children: [
             MushafPageView(
@@ -197,6 +199,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                           IconButton(
                             icon: const Icon(Icons.menu, color: Colors.white),
                             onPressed: () => context.push('/navigation'),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.settings_outlined, color: Colors.white),
+                            onPressed: () => context.push('/settings'),
                           ),
                         ],
                       ),

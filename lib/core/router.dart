@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 import '../features/reader/reader_screen.dart';
 import '../features/navigation/navigation_screen.dart';
+import '../features/settings/settings_screen.dart';
 import '../features/stats/stats_screen.dart';
 import '../features/riwaya/riwaya_screen.dart';
 
@@ -22,6 +23,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/riwaya',
       builder: (context, state) => const RiwayaScreen(),
+    ),
+    GoRoute(
+      path: '/settings',
+      builder: (context, state) => const SettingsScreen(),
     ),
   ],
 );

@@ -92,16 +92,18 @@ class _AyahOverlayBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isHidden) {
+      // Use white in light mode, black in dark mode to match page background.
+      final hideColor = Theme.of(context).brightness == Brightness.dark
+          ? Colors.black
+          : Colors.white;
       // Only trim the left edge on the last segment (where the marker ۝ sits).
-      // The glyph rect ends at the marker's right edge. The marker is ~30px wide.
-      // We pad left by 28px to expose just the marker, covering all text.
       if (isLastSegment) {
-        return const Padding(
-          padding: EdgeInsets.only(left: 28),
-          child: ColoredBox(color: Colors.white),
+        return Padding(
+          padding: const EdgeInsets.only(left: 28),
+          child: ColoredBox(color: hideColor),
         );
       }
-      return const ColoredBox(color: Colors.white);
+      return ColoredBox(color: hideColor);
     }
     if (isBookmarked) {
       return const DecoratedBox(

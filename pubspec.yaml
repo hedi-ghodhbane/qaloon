@@ -20,6 +20,8 @@ dependencies:
   path: any
   json_annotation: any
   collection: any
+  shared_preferences: any
+  share_plus: any
 
 dev_dependencies:
   flutter_test:
