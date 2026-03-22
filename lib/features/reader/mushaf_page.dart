@@ -9,6 +9,8 @@ import '../../core/constants.dart';
 import '../../core/models/page_glyph.dart';
 import '../../core/providers/bookmark_provider.dart';
 import '../../core/providers/reader_providers.dart';
+import '../../core/providers/riwaya_providers.dart';
+import '../../shared/theme/colors.dart';
 import '../../shared/widgets/loading_indicator.dart';
 import 'glyph_overlay.dart';
 
@@ -310,15 +312,17 @@ class _MushafPageState extends ConsumerState<MushafPage> {
       );
     }
     final imageFile = File(_imagePath!);
-    if (!imageFile.existsSync()) {
-      return const Center(
-        child: Text(
-          'يرجى تحميل الصفحات أولاً',
-          style: TextStyle(fontSize: 16),
-        ),
-      );
+    if (imageFile.existsSync() && imageFile.lengthSync() > 0) {
+      return SizedBox.expand(child: Image.file(imageFile, fit: BoxFit.contain));
     }
-    return SizedBox.expand(child: Image.file(imageFile, fit: BoxFit.contain));
+    // Page not yet downloaded — show progress.
+    return _DownloadingPagePlaceholder(
+      pageNumber: widget.pageNumber,
+      onAvailable: () {
+        // Re-resolve the path to trigger rebuild.
+        if (mounted) setState(() {});
+      },
+    );
   }
 
   /// Compute the offset and scale for BoxFit.contain within the given box.
@@ -428,6 +432,104 @@ class _MushafPageState extends ConsumerState<MushafPage> {
           },
         );
       },
+    );
+  }
+}
+
+/// Shows download progress when a page isn't available yet.
+/// Auto-refreshes when the page becomes available.
+class _DownloadingPagePlaceholder extends ConsumerWidget {
+  final int pageNumber;
+  final VoidCallback onAvailable;
+
+  const _DownloadingPagePlaceholder({
+    required this.pageNumber,
+    required this.onAvailable,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final dlState = ref.watch(pageDownloadProvider);
+
+    // Check if our page has been downloaded since last check.
+    if (dlState.lastDownloadedPage >= pageNumber) {
+      // Schedule callback after build.
+      WidgetsBinding.instance.addPostFrameCallback((_) => onAvailable());
+    }
+
+    final pagesRemaining = pageNumber - dlState.lastDownloadedPage;
+    final hasError = dlState.error != null;
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              hasError ? Icons.cloud_off : Icons.cloud_download_outlined,
+              size: 48,
+              color: hasError ? AppColors.error : AppColors.primary,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              hasError ? 'خطأ في التحميل' : 'جارٍ تحميل الصفحات...',
+              style: const TextStyle(
+                fontFamily: 'Noto Naskh Arabic',
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (!hasError) ...[
+              Text(
+                'صفحة $pageNumber — ${pagesRemaining > 0 ? "بقي $pagesRemaining صفحة" : "جاهزة"}',
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: LinearProgressIndicator(
+                  value: dlState.progress,
+                  minHeight: 6,
+                  color: AppColors.primary,
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.15),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '${(dlState.progress * 100).toInt()}%',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary,
+                ),
+              ),
+            ] else ...[
+              Text(
+                dlState.error!,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.error,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                onPressed: () =>
+                    ref.read(pageDownloadProvider.notifier).retry(),
+                icon: const Icon(Icons.refresh, size: 18),
+                label: const Text('إعادة المحاولة'),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

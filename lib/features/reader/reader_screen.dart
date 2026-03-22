@@ -10,6 +10,7 @@ import '../../core/constants.dart';
 import '../../core/providers/bookmark_provider.dart';
 import '../../core/providers/db_provider.dart';
 import '../../core/providers/reader_providers.dart';
+import '../../core/providers/riwaya_providers.dart';
 import '../../core/providers/stats_providers.dart';
 import '../../shared/theme/colors.dart';
 import 'mushaf_page_view.dart';
@@ -166,13 +167,19 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'صفحة $currentPage',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'صفحة $currentPage',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          _buildDownloadChip(),
+                        ],
                       ),
                       Row(
                         mainAxisSize: MainAxisSize.min,
@@ -364,6 +371,63 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildDownloadChip() {
+    final dlState = ref.watch(pageDownloadProvider);
+    if (dlState.isComplete) return const SizedBox.shrink();
+    if (dlState.error != null) {
+      return Padding(
+        padding: const EdgeInsets.only(right: 8),
+        child: GestureDetector(
+          onTap: () => ref.read(pageDownloadProvider.notifier).retry(),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: AppColors.error.withValues(alpha: 0.8),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.refresh, color: Colors.white, size: 12),
+                SizedBox(width: 4),
+                Text('إعادة', style: TextStyle(color: Colors.white, fontSize: 10)),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 10,
+              height: 10,
+              child: CircularProgressIndicator(
+                value: dlState.progress,
+                strokeWidth: 1.5,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              '${(dlState.progress * 100).toInt()}%',
+              style: const TextStyle(color: Colors.white, fontSize: 10),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

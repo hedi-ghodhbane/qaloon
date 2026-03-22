@@ -1,5 +1,10 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../constants.dart';
 import '../db/app_database.dart';
+import '../../features/riwaya/download_service.dart';
 import 'db_provider.dart';
 
 final riwayaListProvider = StreamProvider<List<RiwayaTableData>>((ref) {
@@ -7,26 +12,114 @@ final riwayaListProvider = StreamProvider<List<RiwayaTableData>>((ref) {
   return db.riwayaDao.watchAllRiwayas();
 });
 
-final activeDownloadProvider =
-    StateNotifierProvider<ActiveDownloadNotifier, int?>(
-  (ref) => ActiveDownloadNotifier(),
+/// Tracks the download state: progress 0.0–1.0, or null if not downloading.
+/// 1.0 means complete.
+final pageDownloadProvider =
+    StateNotifierProvider<PageDownloadNotifier, PageDownloadState>(
+  (ref) => PageDownloadNotifier(ref),
 );
 
-class ActiveDownloadNotifier extends StateNotifier<int?> {
-  ActiveDownloadNotifier() : super(null);
+class PageDownloadState {
+  final double progress; // 0.0–1.0
+  final bool isDownloading;
+  final bool isComplete;
+  final int lastDownloadedPage;
+  final String? error;
 
-  void setDownloading(int riwayaId) => state = riwayaId;
-  void clearDownloading() => state = null;
+  const PageDownloadState({
+    this.progress = 0.0,
+    this.isDownloading = false,
+    this.isComplete = false,
+    this.lastDownloadedPage = kBundledPages,
+    this.error,
+  });
+
+  PageDownloadState copyWith({
+    double? progress,
+    bool? isDownloading,
+    bool? isComplete,
+    int? lastDownloadedPage,
+    String? error,
+  }) =>
+      PageDownloadState(
+        progress: progress ?? this.progress,
+        isDownloading: isDownloading ?? this.isDownloading,
+        isComplete: isComplete ?? this.isComplete,
+        lastDownloadedPage: lastDownloadedPage ?? this.lastDownloadedPage,
+        error: error,
+      );
 }
 
-final downloadProgressProvider =
-    StateNotifierProvider<DownloadProgressNotifier, double>(
-  (ref) => DownloadProgressNotifier(),
-);
+class PageDownloadNotifier extends StateNotifier<PageDownloadState> {
+  final Ref _ref;
+  final DownloadService _service = DownloadService();
+  StreamSubscription<double>? _sub;
 
-class DownloadProgressNotifier extends StateNotifier<double> {
-  DownloadProgressNotifier() : super(0.0);
+  PageDownloadNotifier(this._ref) : super(const PageDownloadState()) {
+    _checkAndStart();
+  }
 
-  void update(double progress) => state = progress;
-  void reset() => state = 0.0;
+  Future<void> _checkAndStart() async {
+    final alreadyDone = await _service.isFullyDownloaded(RiwayaKeys.qaloun);
+    if (alreadyDone) {
+      state = state.copyWith(
+        isComplete: true,
+        progress: 1.0,
+        lastDownloadedPage: kTotalPages,
+      );
+      return;
+    }
+    // Auto-start download.
+    startDownload();
+  }
+
+  void startDownload() {
+    if (state.isDownloading) return;
+    state = state.copyWith(isDownloading: true, error: null);
+
+    final stream = _service.downloadRemainingPages(
+      riwayaKey: RiwayaKeys.qaloun,
+    );
+
+    _sub = stream.listen(
+      (progress) {
+        final downloadedPage =
+            kBundledPages + (progress * (kTotalPages - kBundledPages)).round();
+        state = state.copyWith(
+          progress: progress,
+          lastDownloadedPage: downloadedPage,
+        );
+      },
+      onDone: () {
+        state = state.copyWith(
+          isDownloading: false,
+          isComplete: true,
+          progress: 1.0,
+          lastDownloadedPage: kTotalPages,
+        );
+        debugPrint('[DOWNLOAD] Complete — all $kTotalPages pages available.');
+        // Mark riwaya as fully downloaded in DB.
+        final db = _ref.read(appDatabaseProvider);
+        db.riwayaDao.markDownloaded(kQalounRiwayaId);
+      },
+      onError: (e) {
+        debugPrint('[DOWNLOAD] Error: $e');
+        state = state.copyWith(
+          isDownloading: false,
+          error: '$e',
+        );
+      },
+    );
+  }
+
+  void retry() {
+    state = state.copyWith(error: null);
+    startDownload();
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
+  }
 }
