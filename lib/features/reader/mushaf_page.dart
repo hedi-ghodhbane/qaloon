@@ -393,9 +393,16 @@ class _MushafPageState extends ConsumerState<MushafPage> {
           bookmarkedAyah = (bookmark.surahId!, bookmark.ayahNumber!);
         }
 
+        // If page isn't available yet, show placeholder without glyphs.
+        if (!_isBundledPage && _imagePath != null) {
+          final f = File(_imagePath!);
+          if (!f.existsSync() || f.lengthSync() == 0) {
+            return _buildPageImage();
+          }
+        }
+
         return glyphsAsync.when(
-          loading: () =>
-              ColoredBox(color: Colors.white, child: _buildPageImage()),
+          loading: () => _buildPageImage(),
           error: (e, _) => Center(child: Text('خطأ: $e')),
           data: (glyphs) {
             // Map raw glyph coords to screen space using exact x1,y1,x2,y2.
