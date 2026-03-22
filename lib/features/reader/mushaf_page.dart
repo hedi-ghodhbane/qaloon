@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../../core/constants.dart';
 import '../../core/models/page_glyph.dart';
 import '../../core/providers/bookmark_provider.dart';
 import '../../core/providers/reader_providers.dart';
@@ -39,10 +40,12 @@ class _MushafPageState extends ConsumerState<MushafPage> {
   String? _imagePath;
   bool _pathReady = false;
 
+  bool get _isBundledPage => widget.isBundled && widget.pageNumber <= kBundledPages;
+
   @override
   void initState() {
     super.initState();
-    if (widget.isBundled) {
+    if (_isBundledPage) {
       _pathReady = true;
     } else {
       _resolveImagePath();
@@ -71,9 +74,9 @@ class _MushafPageState extends ConsumerState<MushafPage> {
     });
   }
 
-  /// Asset path for bundled riwaya pages.
+  /// Asset path for bundled riwaya pages (1–kBundledPages).
   String get _assetPath =>
-      'assets/pages/${widget.riwayaKey}_golden/${widget.pageNumber}.png';
+      'assets/pages/${widget.riwayaKey}_bundled/${widget.pageNumber}.png';
 
   Future<void> _resolveImagePath() async {
     final dir = await getApplicationDocumentsDirectory();
@@ -301,7 +304,7 @@ class _MushafPageState extends ConsumerState<MushafPage> {
   }
 
   Widget _buildPageImage() {
-    if (widget.isBundled) {
+    if (_isBundledPage) {
       return SizedBox.expand(
         child: Image.asset(_assetPath, fit: BoxFit.contain),
       );
@@ -309,7 +312,10 @@ class _MushafPageState extends ConsumerState<MushafPage> {
     final imageFile = File(_imagePath!);
     if (!imageFile.existsSync()) {
       return const Center(
-        child: Text('صفحة غير متوفرة', style: TextStyle(fontSize: 18)),
+        child: Text(
+          'يرجى تحميل الصفحات أولاً',
+          style: TextStyle(fontSize: 16),
+        ),
       );
     }
     return SizedBox.expand(child: Image.file(imageFile, fit: BoxFit.contain));

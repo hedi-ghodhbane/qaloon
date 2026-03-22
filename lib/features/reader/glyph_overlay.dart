@@ -93,9 +93,10 @@ class _AyahOverlayBox extends StatelessWidget {
   Widget build(BuildContext context) {
     if (isHidden) {
       // Only trim the left edge on the last segment (where the marker ۝ sits).
+      // 38px leaves the marker visible but covers trailing text.
       if (isLastSegment) {
         return const Padding(
-          padding: EdgeInsets.only(left: 30),
+          padding: EdgeInsets.only(left: 38),
           child: ColoredBox(color: Colors.white),
         );
       }

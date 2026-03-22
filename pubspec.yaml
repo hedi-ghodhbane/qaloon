@@ -53,5 +53,5 @@ flutter:
   assets:
     - assets/db/
     - assets/metadata/
-    - assets/pages/qaloun_golden/
+    - assets/pages/qaloun_bundled/
     - assets/logo.png

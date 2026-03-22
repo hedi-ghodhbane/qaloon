@@ -53,7 +53,7 @@ class RiwayaScreen extends ConsumerWidget {
     ref.read(downloadProgressProvider.notifier).reset();
 
     try {
-      await for (final progress in service.downloadRiwaya(riwaya.key)) {
+      await for (final progress in service.downloadRemainingPages(riwayaKey: riwaya.key)) {
         ref.read(downloadProgressProvider.notifier).update(progress);
       }
       await db.riwayaDao.markDownloaded(riwaya.id);
