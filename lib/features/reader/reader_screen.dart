@@ -220,31 +220,70 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                       ],
                     ),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _BottomAction(
-                        icon: Icons.bookmark_outline,
-                        label: 'العلامة',
-                        onTap: _goToBookmark,
-                      ),
-                      _BottomAction(
-                        icon: Icons.bar_chart_rounded,
-                        label: 'إحصائيات',
-                        onTap: () => context.push('/stats'),
-                      ),
-                      _BottomAction(
-                        icon: Icons.auto_stories_outlined,
-                        label: 'الروايات',
-                        onTap: () => context.push('/riwaya'),
-                      ),
-                    ],
-                  ),
+                  child: _buildBottomBar(context),
                 ),
               ),
             ],
           ],
         ),
+    );
+  }
+
+  Widget _buildBottomBar(BuildContext context) {
+    final mode = ref.watch(readerModeProvider);
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        // Bookmark
+        _BottomAction(
+          icon: Icons.bookmark_outline,
+          label: 'العلامة',
+          onTap: _goToBookmark,
+        ),
+        // Hide all page
+        _BottomAction(
+          icon: Icons.visibility_off_outlined,
+          label: 'إخفاء الكل',
+          onTap: () {
+            ref.read(readerModeProvider.notifier).state = ReaderMode.hidePage;
+            ref.read(readerActionProvider.notifier).state =
+                ReaderAction.hideAll;
+          },
+        ),
+        // Show all
+        _BottomAction(
+          icon: Icons.visibility,
+          label: 'إظهار الكل',
+          onTap: () {
+            ref.read(readerActionProvider.notifier).state =
+                ReaderAction.showAll;
+            ref.read(readerModeProvider.notifier).state = ReaderMode.normal;
+          },
+        ),
+        // Select mode / hide selected
+        _BottomAction(
+          icon: mode == ReaderMode.select
+              ? Icons.check_circle_outline
+              : Icons.select_all,
+          label: mode == ReaderMode.select ? 'إخفاء المحدد' : 'تحديد',
+          onTap: () {
+            if (mode == ReaderMode.select) {
+              ref.read(readerActionProvider.notifier).state =
+                  ReaderAction.hideSelected;
+              ref.read(readerModeProvider.notifier).state = ReaderMode.normal;
+            } else {
+              ref.read(readerModeProvider.notifier).state = ReaderMode.select;
+            }
+          },
+        ),
+        // Stats
+        _BottomAction(
+          icon: Icons.bar_chart_rounded,
+          label: 'إحصائيات',
+          onTap: () => context.push('/stats'),
+        ),
+      ],
     );
   }
 

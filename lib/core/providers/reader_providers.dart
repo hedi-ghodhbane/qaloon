@@ -5,6 +5,28 @@ import '../constants.dart';
 import '../models/page_glyph.dart';
 import 'db_provider.dart';
 
+/// Interaction mode for the Mushaf reader.
+enum ReaderMode {
+  /// Normal reading — tap selects single ayah, long-press bookmarks.
+  normal,
+
+  /// All ayahs hidden — tap to reveal one by one.
+  hidePage,
+
+  /// Multi-select — tap toggles ayahs, toolbar shows hide/show actions.
+  select,
+}
+
+final readerModeProvider = StateProvider<ReaderMode>((ref) => ReaderMode.normal);
+
+/// Signals from toolbar to the active MushafPage.
+enum ReaderAction { hideAll, showAll, hideSelected }
+
+final readerActionProvider = StateProvider<ReaderAction?>((ref) => null);
+
+/// Whether the current page has any hidden ayahs (set by MushafPage).
+final hasHiddenAyahsProvider = StateProvider<bool>((ref) => false);
+
 final currentPageProvider = StateNotifierProvider<CurrentPageNotifier, int>(
   (ref) => CurrentPageNotifier(),
 );

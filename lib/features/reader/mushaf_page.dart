@@ -47,6 +47,24 @@ class _MushafPageState extends ConsumerState<MushafPage> {
     } else {
       _resolveImagePath();
     }
+    // Listen for toolbar actions (hide all, show all, hide selected).
+    ref.listenManual(readerActionProvider, (prev, action) {
+      if (action == null) return;
+      switch (action) {
+        case ReaderAction.hideAll:
+          hideAllAyahs();
+        case ReaderAction.showAll:
+          showAll();
+        case ReaderAction.hideSelected:
+          hideSelected();
+      }
+      // Reset after frame so it can fire again.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ref.read(readerActionProvider.notifier).state = null;
+        }
+      });
+    });
   }
 
   /// Asset path for bundled riwaya pages.
@@ -66,85 +84,127 @@ class _MushafPageState extends ConsumerState<MushafPage> {
   }
 
   void _onAyahTap(PageGlyph glyph) {
-    debugPrint('[AYAH TAP] surah=${glyph.surahId}, ayah=${glyph.ayahNumber}, '
-        'page=${glyph.pageNumber}, rect=${glyph.rect}');
+    final mode = ref.read(readerModeProvider);
+    final key = glyph.ayahKey;
+
     setState(() {
-      final key = glyph.ayahKey;
+      // Always reveal hidden ayahs on tap, regardless of mode.
       if (_hiddenAyahs.contains(key)) {
         _hiddenAyahs.remove(key);
+        _syncHiddenState();
+        if (_hiddenAyahs.isEmpty && mode == ReaderMode.hidePage) {
+          ref.read(readerModeProvider.notifier).state = ReaderMode.normal;
+        }
         return;
       }
-      if (_selectedAyahs.contains(key)) {
-        _selectedAyahs.clear();
-      } else {
-        _selectedAyahs
-          ..clear()
-          ..add(key);
+
+      switch (mode) {
+        case ReaderMode.normal:
+          if (_selectedAyahs.contains(key)) {
+            _selectedAyahs.clear();
+          } else {
+            _selectedAyahs
+              ..clear()
+              ..add(key);
+          }
+        case ReaderMode.hidePage:
+          // Nothing to do — hidden reveal handled above.
+          break;
+        case ReaderMode.select:
+          if (_selectedAyahs.contains(key)) {
+            _selectedAyahs.remove(key);
+          } else {
+            _selectedAyahs.add(key);
+          }
       }
     });
   }
 
   void _onAyahLongPress(PageGlyph glyph) {
-    _showAyahActions(context, glyph);
-  }
-
-  void _showAyahActions(BuildContext context, PageGlyph glyph) {
     final key = glyph.ayahKey;
     final isHidden = _hiddenAyahs.contains(key);
+    final bookmark = ref.read(bookmarkNotifierProvider).valueOrNull;
+    final isBookmarked = bookmark != null &&
+        bookmark.pageNumber == widget.pageNumber &&
+        bookmark.surahId == glyph.surahId &&
+        bookmark.ayahNumber == glyph.ayahNumber;
 
     showModalBottomSheet<void>(
       context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.bookmark_outline),
-              title: Text('حفظ علامة — ${glyph.surahId}:${glyph.ayahNumber}'),
-              onTap: () {
-                Navigator.pop(ctx);
-                ref
-                    .read(bookmarkNotifierProvider.notifier)
-                    .setBookmark(
-                      pageNumber: widget.pageNumber,
-                      surahId: glyph.surahId,
-                      ayahNumber: glyph.ayahNumber,
-                      riwayaId: widget.riwayaId,
-                    );
-              },
-            ),
-            ListTile(
-              leading: Icon(isHidden ? Icons.visibility : Icons.visibility_off),
-              title: Text(isHidden ? 'إظهار الآية' : 'إخفاء الآية'),
-              onTap: () {
-                Navigator.pop(ctx);
-                setState(() {
-                  if (isHidden) {
-                    _hiddenAyahs.remove(key);
-                  } else {
-                    _hiddenAyahs.add(key);
-                  }
-                });
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.visibility_off_outlined),
-              title: const Text('إخفاء كل الصفحة'),
-              onTap: () {
-                Navigator.pop(ctx);
-                _hideAllOnPage();
-              },
-            ),
-            if (_hiddenAyahs.isNotEmpty)
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                child: Text(
+                  'سورة ${glyph.surahId} : آية ${glyph.ayahNumber}',
+                  style: const TextStyle(
+                    fontFamily: 'Noto Naskh Arabic',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const Divider(height: 1),
+              // Bookmark
               ListTile(
-                leading: const Icon(Icons.visibility_outlined),
-                title: const Text('إظهار الكل'),
+                leading: Icon(
+                  isBookmarked ? Icons.bookmark : Icons.bookmark_outline,
+                  color: isBookmarked ? const Color(0xFFCDA34F) : null,
+                ),
+                title: Text(isBookmarked ? 'إزالة العلامة' : 'حفظ علامة هنا'),
                 onTap: () {
                   Navigator.pop(ctx);
-                  setState(() => _hiddenAyahs.clear());
+                  if (isBookmarked) {
+                    ref.read(bookmarkNotifierProvider.notifier).clearBookmark();
+                  } else {
+                    ref.read(bookmarkNotifierProvider.notifier).setBookmark(
+                          pageNumber: widget.pageNumber,
+                          surahId: glyph.surahId,
+                          ayahNumber: glyph.ayahNumber,
+                          riwayaId: widget.riwayaId,
+                        );
+                  }
                 },
               ),
-          ],
+              // Hide / Show ayah
+              ListTile(
+                leading: Icon(
+                  isHidden ? Icons.visibility : Icons.visibility_off_outlined,
+                ),
+                title: Text(isHidden ? 'إظهار الآية' : 'إخفاء الآية'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  setState(() {
+                    if (isHidden) {
+                      _hiddenAyahs.remove(key);
+                    } else {
+                      _hiddenAyahs.add(key);
+                    }
+                    _syncHiddenState();
+                  });
+                },
+              ),
+              // Hide all page
+              ListTile(
+                leading: const Icon(Icons.visibility_off),
+                title: const Text('إخفاء كل الصفحة'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  hideAllAyahs();
+                  ref.read(readerModeProvider.notifier).state =
+                      ReaderMode.hidePage;
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -164,10 +224,33 @@ class _MushafPageState extends ConsumerState<MushafPage> {
     return glyphs.map((g) => g.ayahKey).toSet();
   }
 
-  void _hideAllOnPage() {
+  /// Called by ReaderScreen when entering hidePage mode.
+  void _syncHiddenState() {
+    ref.read(hasHiddenAyahsProvider.notifier).state = _hiddenAyahs.isNotEmpty;
+  }
+
+  void hideAllAyahs() {
     setState(() {
       _hiddenAyahs.addAll(_allAyahKeysOnPage());
+      _selectedAyahs.clear();
     });
+    _syncHiddenState();
+  }
+
+  void hideSelected() {
+    setState(() {
+      _hiddenAyahs.addAll(_selectedAyahs);
+      _selectedAyahs.clear();
+    });
+    _syncHiddenState();
+  }
+
+  void showAll() {
+    setState(() {
+      _hiddenAyahs.clear();
+      _selectedAyahs.clear();
+    });
+    _syncHiddenState();
   }
 
   Widget _buildPageImage() {
