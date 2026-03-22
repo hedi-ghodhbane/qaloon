@@ -92,17 +92,9 @@ class _AyahOverlayBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isHidden) {
-      // Use white in light mode, black in dark mode to match page background.
       final hideColor = Theme.of(context).brightness == Brightness.dark
           ? Colors.black
           : Colors.white;
-      // Only trim the left edge on the last segment (where the marker ۝ sits).
-      if (isLastSegment) {
-        return Padding(
-          padding: const EdgeInsets.only(left: 28),
-          child: ColoredBox(color: hideColor),
-        );
-      }
       return ColoredBox(color: hideColor);
     }
     if (isBookmarked) {
