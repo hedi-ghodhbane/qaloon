@@ -136,8 +136,15 @@ class _AyahResultTile extends ConsumerWidget {
     final spans = _buildHighlightedSpans(text, query);
 
     return InkWell(
-      onTap: () {
-        ref.read(currentPageProvider.notifier).setPage(ayah.pageNumber);
+      onTap: () async {
+        // Look up Qaloun page from pageAyahIndex (ayah_text may have Hafs pages).
+        final db = ref.read(appDatabaseProvider);
+        final riwayaId = ref.read(currentRiwayaIdProvider);
+        final page = await db.pageAyahIndexDao
+            .getPageOfAyah(ayah.surahId, ayah.ayahNumber, riwayaId);
+        final targetPage = page ?? ayah.pageNumber;
+
+        ref.read(currentPageProvider.notifier).setPage(targetPage);
         // Flash highlight the target ayah for 3 seconds.
         ref.read(highlightAyahProvider.notifier).state =
             (ayah.surahId, ayah.ayahNumber);
@@ -148,7 +155,7 @@ class _AyahResultTile extends ConsumerWidget {
         });
         if (onNavigate != null) {
           onNavigate!();
-        } else {
+        } else if (context.mounted) {
           context.go('/');
         }
       },
