@@ -247,9 +247,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                             ),
                             onPressed: () => _toggleBookmark(currentPage, riwayaId, isBookmarked),
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.menu, color: Colors.white),
-                            onPressed: () => Scaffold.of(context).openEndDrawer(),
+                          Builder(
+                            builder: (ctx) => IconButton(
+                              icon: const Icon(Icons.menu, color: Colors.white),
+                              onPressed: () => Scaffold.of(ctx).openEndDrawer(),
+                            ),
                           ),
                           IconButton(
                             icon: const Icon(Icons.settings_outlined, color: Colors.white),

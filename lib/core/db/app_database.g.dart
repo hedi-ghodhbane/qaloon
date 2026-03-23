@@ -3080,6 +3080,980 @@ class AyahTextTableCompanion extends UpdateCompanion<AyahTextTableData> {
   }
 }
 
+class $KhatmahTableTable extends KhatmahTable
+    with TableInfo<$KhatmahTableTable, KhatmahTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $KhatmahTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _totalDaysMeta = const VerificationMeta(
+    'totalDays',
+  );
+  @override
+  late final GeneratedColumn<int> totalDays = GeneratedColumn<int>(
+    'total_days',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _startDateMeta = const VerificationMeta(
+    'startDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> startDate = GeneratedColumn<DateTime>(
+    'start_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _riwayaIdMeta = const VerificationMeta(
+    'riwayaId',
+  );
+  @override
+  late final GeneratedColumn<int> riwayaId = GeneratedColumn<int>(
+    'riwaya_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _pagesPerDayMeta = const VerificationMeta(
+    'pagesPerDay',
+  );
+  @override
+  late final GeneratedColumn<int> pagesPerDay = GeneratedColumn<int>(
+    'pages_per_day',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _isActiveMeta = const VerificationMeta(
+    'isActive',
+  );
+  @override
+  late final GeneratedColumn<bool> isActive = GeneratedColumn<bool>(
+    'is_active',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_active" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    totalDays,
+    startDate,
+    riwayaId,
+    pagesPerDay,
+    isActive,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'khatmah_table';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<KhatmahTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('total_days')) {
+      context.handle(
+        _totalDaysMeta,
+        totalDays.isAcceptableOrUnknown(data['total_days']!, _totalDaysMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_totalDaysMeta);
+    }
+    if (data.containsKey('start_date')) {
+      context.handle(
+        _startDateMeta,
+        startDate.isAcceptableOrUnknown(data['start_date']!, _startDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startDateMeta);
+    }
+    if (data.containsKey('riwaya_id')) {
+      context.handle(
+        _riwayaIdMeta,
+        riwayaId.isAcceptableOrUnknown(data['riwaya_id']!, _riwayaIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_riwayaIdMeta);
+    }
+    if (data.containsKey('pages_per_day')) {
+      context.handle(
+        _pagesPerDayMeta,
+        pagesPerDay.isAcceptableOrUnknown(
+          data['pages_per_day']!,
+          _pagesPerDayMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_pagesPerDayMeta);
+    }
+    if (data.containsKey('is_active')) {
+      context.handle(
+        _isActiveMeta,
+        isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  KhatmahTableData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return KhatmahTableData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      totalDays: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}total_days'],
+      )!,
+      startDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}start_date'],
+      )!,
+      riwayaId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}riwaya_id'],
+      )!,
+      pagesPerDay: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}pages_per_day'],
+      )!,
+      isActive: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_active'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $KhatmahTableTable createAlias(String alias) {
+    return $KhatmahTableTable(attachedDatabase, alias);
+  }
+}
+
+class KhatmahTableData extends DataClass
+    implements Insertable<KhatmahTableData> {
+  final int id;
+  final String name;
+  final int totalDays;
+  final DateTime startDate;
+  final int riwayaId;
+  final int pagesPerDay;
+  final bool isActive;
+  final DateTime createdAt;
+  const KhatmahTableData({
+    required this.id,
+    required this.name,
+    required this.totalDays,
+    required this.startDate,
+    required this.riwayaId,
+    required this.pagesPerDay,
+    required this.isActive,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['name'] = Variable<String>(name);
+    map['total_days'] = Variable<int>(totalDays);
+    map['start_date'] = Variable<DateTime>(startDate);
+    map['riwaya_id'] = Variable<int>(riwayaId);
+    map['pages_per_day'] = Variable<int>(pagesPerDay);
+    map['is_active'] = Variable<bool>(isActive);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  KhatmahTableCompanion toCompanion(bool nullToAbsent) {
+    return KhatmahTableCompanion(
+      id: Value(id),
+      name: Value(name),
+      totalDays: Value(totalDays),
+      startDate: Value(startDate),
+      riwayaId: Value(riwayaId),
+      pagesPerDay: Value(pagesPerDay),
+      isActive: Value(isActive),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory KhatmahTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return KhatmahTableData(
+      id: serializer.fromJson<int>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      totalDays: serializer.fromJson<int>(json['totalDays']),
+      startDate: serializer.fromJson<DateTime>(json['startDate']),
+      riwayaId: serializer.fromJson<int>(json['riwayaId']),
+      pagesPerDay: serializer.fromJson<int>(json['pagesPerDay']),
+      isActive: serializer.fromJson<bool>(json['isActive']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'name': serializer.toJson<String>(name),
+      'totalDays': serializer.toJson<int>(totalDays),
+      'startDate': serializer.toJson<DateTime>(startDate),
+      'riwayaId': serializer.toJson<int>(riwayaId),
+      'pagesPerDay': serializer.toJson<int>(pagesPerDay),
+      'isActive': serializer.toJson<bool>(isActive),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  KhatmahTableData copyWith({
+    int? id,
+    String? name,
+    int? totalDays,
+    DateTime? startDate,
+    int? riwayaId,
+    int? pagesPerDay,
+    bool? isActive,
+    DateTime? createdAt,
+  }) => KhatmahTableData(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    totalDays: totalDays ?? this.totalDays,
+    startDate: startDate ?? this.startDate,
+    riwayaId: riwayaId ?? this.riwayaId,
+    pagesPerDay: pagesPerDay ?? this.pagesPerDay,
+    isActive: isActive ?? this.isActive,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  KhatmahTableData copyWithCompanion(KhatmahTableCompanion data) {
+    return KhatmahTableData(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      totalDays: data.totalDays.present ? data.totalDays.value : this.totalDays,
+      startDate: data.startDate.present ? data.startDate.value : this.startDate,
+      riwayaId: data.riwayaId.present ? data.riwayaId.value : this.riwayaId,
+      pagesPerDay: data.pagesPerDay.present
+          ? data.pagesPerDay.value
+          : this.pagesPerDay,
+      isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('KhatmahTableData(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('totalDays: $totalDays, ')
+          ..write('startDate: $startDate, ')
+          ..write('riwayaId: $riwayaId, ')
+          ..write('pagesPerDay: $pagesPerDay, ')
+          ..write('isActive: $isActive, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    name,
+    totalDays,
+    startDate,
+    riwayaId,
+    pagesPerDay,
+    isActive,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is KhatmahTableData &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.totalDays == this.totalDays &&
+          other.startDate == this.startDate &&
+          other.riwayaId == this.riwayaId &&
+          other.pagesPerDay == this.pagesPerDay &&
+          other.isActive == this.isActive &&
+          other.createdAt == this.createdAt);
+}
+
+class KhatmahTableCompanion extends UpdateCompanion<KhatmahTableData> {
+  final Value<int> id;
+  final Value<String> name;
+  final Value<int> totalDays;
+  final Value<DateTime> startDate;
+  final Value<int> riwayaId;
+  final Value<int> pagesPerDay;
+  final Value<bool> isActive;
+  final Value<DateTime> createdAt;
+  const KhatmahTableCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.totalDays = const Value.absent(),
+    this.startDate = const Value.absent(),
+    this.riwayaId = const Value.absent(),
+    this.pagesPerDay = const Value.absent(),
+    this.isActive = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  KhatmahTableCompanion.insert({
+    this.id = const Value.absent(),
+    required String name,
+    required int totalDays,
+    required DateTime startDate,
+    required int riwayaId,
+    required int pagesPerDay,
+    this.isActive = const Value.absent(),
+    required DateTime createdAt,
+  }) : name = Value(name),
+       totalDays = Value(totalDays),
+       startDate = Value(startDate),
+       riwayaId = Value(riwayaId),
+       pagesPerDay = Value(pagesPerDay),
+       createdAt = Value(createdAt);
+  static Insertable<KhatmahTableData> custom({
+    Expression<int>? id,
+    Expression<String>? name,
+    Expression<int>? totalDays,
+    Expression<DateTime>? startDate,
+    Expression<int>? riwayaId,
+    Expression<int>? pagesPerDay,
+    Expression<bool>? isActive,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (totalDays != null) 'total_days': totalDays,
+      if (startDate != null) 'start_date': startDate,
+      if (riwayaId != null) 'riwaya_id': riwayaId,
+      if (pagesPerDay != null) 'pages_per_day': pagesPerDay,
+      if (isActive != null) 'is_active': isActive,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  KhatmahTableCompanion copyWith({
+    Value<int>? id,
+    Value<String>? name,
+    Value<int>? totalDays,
+    Value<DateTime>? startDate,
+    Value<int>? riwayaId,
+    Value<int>? pagesPerDay,
+    Value<bool>? isActive,
+    Value<DateTime>? createdAt,
+  }) {
+    return KhatmahTableCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      totalDays: totalDays ?? this.totalDays,
+      startDate: startDate ?? this.startDate,
+      riwayaId: riwayaId ?? this.riwayaId,
+      pagesPerDay: pagesPerDay ?? this.pagesPerDay,
+      isActive: isActive ?? this.isActive,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (totalDays.present) {
+      map['total_days'] = Variable<int>(totalDays.value);
+    }
+    if (startDate.present) {
+      map['start_date'] = Variable<DateTime>(startDate.value);
+    }
+    if (riwayaId.present) {
+      map['riwaya_id'] = Variable<int>(riwayaId.value);
+    }
+    if (pagesPerDay.present) {
+      map['pages_per_day'] = Variable<int>(pagesPerDay.value);
+    }
+    if (isActive.present) {
+      map['is_active'] = Variable<bool>(isActive.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('KhatmahTableCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('totalDays: $totalDays, ')
+          ..write('startDate: $startDate, ')
+          ..write('riwayaId: $riwayaId, ')
+          ..write('pagesPerDay: $pagesPerDay, ')
+          ..write('isActive: $isActive, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $KhatmahDayTableTable extends KhatmahDayTable
+    with TableInfo<$KhatmahDayTableTable, KhatmahDayTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $KhatmahDayTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _khatmahIdMeta = const VerificationMeta(
+    'khatmahId',
+  );
+  @override
+  late final GeneratedColumn<int> khatmahId = GeneratedColumn<int>(
+    'khatmah_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dayNumberMeta = const VerificationMeta(
+    'dayNumber',
+  );
+  @override
+  late final GeneratedColumn<int> dayNumber = GeneratedColumn<int>(
+    'day_number',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _startPageMeta = const VerificationMeta(
+    'startPage',
+  );
+  @override
+  late final GeneratedColumn<int> startPage = GeneratedColumn<int>(
+    'start_page',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _endPageMeta = const VerificationMeta(
+    'endPage',
+  );
+  @override
+  late final GeneratedColumn<int> endPage = GeneratedColumn<int>(
+    'end_page',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _isCompletedMeta = const VerificationMeta(
+    'isCompleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isCompleted = GeneratedColumn<bool>(
+    'is_completed',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_completed" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _completedAtMeta = const VerificationMeta(
+    'completedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> completedAt = GeneratedColumn<DateTime>(
+    'completed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    khatmahId,
+    dayNumber,
+    startPage,
+    endPage,
+    isCompleted,
+    completedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'khatmah_day_table';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<KhatmahDayTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('khatmah_id')) {
+      context.handle(
+        _khatmahIdMeta,
+        khatmahId.isAcceptableOrUnknown(data['khatmah_id']!, _khatmahIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_khatmahIdMeta);
+    }
+    if (data.containsKey('day_number')) {
+      context.handle(
+        _dayNumberMeta,
+        dayNumber.isAcceptableOrUnknown(data['day_number']!, _dayNumberMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dayNumberMeta);
+    }
+    if (data.containsKey('start_page')) {
+      context.handle(
+        _startPageMeta,
+        startPage.isAcceptableOrUnknown(data['start_page']!, _startPageMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startPageMeta);
+    }
+    if (data.containsKey('end_page')) {
+      context.handle(
+        _endPageMeta,
+        endPage.isAcceptableOrUnknown(data['end_page']!, _endPageMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_endPageMeta);
+    }
+    if (data.containsKey('is_completed')) {
+      context.handle(
+        _isCompletedMeta,
+        isCompleted.isAcceptableOrUnknown(
+          data['is_completed']!,
+          _isCompletedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('completed_at')) {
+      context.handle(
+        _completedAtMeta,
+        completedAt.isAcceptableOrUnknown(
+          data['completed_at']!,
+          _completedAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  KhatmahDayTableData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return KhatmahDayTableData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      khatmahId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}khatmah_id'],
+      )!,
+      dayNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}day_number'],
+      )!,
+      startPage: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}start_page'],
+      )!,
+      endPage: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}end_page'],
+      )!,
+      isCompleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_completed'],
+      )!,
+      completedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}completed_at'],
+      ),
+    );
+  }
+
+  @override
+  $KhatmahDayTableTable createAlias(String alias) {
+    return $KhatmahDayTableTable(attachedDatabase, alias);
+  }
+}
+
+class KhatmahDayTableData extends DataClass
+    implements Insertable<KhatmahDayTableData> {
+  final int id;
+  final int khatmahId;
+  final int dayNumber;
+  final int startPage;
+  final int endPage;
+  final bool isCompleted;
+  final DateTime? completedAt;
+  const KhatmahDayTableData({
+    required this.id,
+    required this.khatmahId,
+    required this.dayNumber,
+    required this.startPage,
+    required this.endPage,
+    required this.isCompleted,
+    this.completedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['khatmah_id'] = Variable<int>(khatmahId);
+    map['day_number'] = Variable<int>(dayNumber);
+    map['start_page'] = Variable<int>(startPage);
+    map['end_page'] = Variable<int>(endPage);
+    map['is_completed'] = Variable<bool>(isCompleted);
+    if (!nullToAbsent || completedAt != null) {
+      map['completed_at'] = Variable<DateTime>(completedAt);
+    }
+    return map;
+  }
+
+  KhatmahDayTableCompanion toCompanion(bool nullToAbsent) {
+    return KhatmahDayTableCompanion(
+      id: Value(id),
+      khatmahId: Value(khatmahId),
+      dayNumber: Value(dayNumber),
+      startPage: Value(startPage),
+      endPage: Value(endPage),
+      isCompleted: Value(isCompleted),
+      completedAt: completedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(completedAt),
+    );
+  }
+
+  factory KhatmahDayTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return KhatmahDayTableData(
+      id: serializer.fromJson<int>(json['id']),
+      khatmahId: serializer.fromJson<int>(json['khatmahId']),
+      dayNumber: serializer.fromJson<int>(json['dayNumber']),
+      startPage: serializer.fromJson<int>(json['startPage']),
+      endPage: serializer.fromJson<int>(json['endPage']),
+      isCompleted: serializer.fromJson<bool>(json['isCompleted']),
+      completedAt: serializer.fromJson<DateTime?>(json['completedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'khatmahId': serializer.toJson<int>(khatmahId),
+      'dayNumber': serializer.toJson<int>(dayNumber),
+      'startPage': serializer.toJson<int>(startPage),
+      'endPage': serializer.toJson<int>(endPage),
+      'isCompleted': serializer.toJson<bool>(isCompleted),
+      'completedAt': serializer.toJson<DateTime?>(completedAt),
+    };
+  }
+
+  KhatmahDayTableData copyWith({
+    int? id,
+    int? khatmahId,
+    int? dayNumber,
+    int? startPage,
+    int? endPage,
+    bool? isCompleted,
+    Value<DateTime?> completedAt = const Value.absent(),
+  }) => KhatmahDayTableData(
+    id: id ?? this.id,
+    khatmahId: khatmahId ?? this.khatmahId,
+    dayNumber: dayNumber ?? this.dayNumber,
+    startPage: startPage ?? this.startPage,
+    endPage: endPage ?? this.endPage,
+    isCompleted: isCompleted ?? this.isCompleted,
+    completedAt: completedAt.present ? completedAt.value : this.completedAt,
+  );
+  KhatmahDayTableData copyWithCompanion(KhatmahDayTableCompanion data) {
+    return KhatmahDayTableData(
+      id: data.id.present ? data.id.value : this.id,
+      khatmahId: data.khatmahId.present ? data.khatmahId.value : this.khatmahId,
+      dayNumber: data.dayNumber.present ? data.dayNumber.value : this.dayNumber,
+      startPage: data.startPage.present ? data.startPage.value : this.startPage,
+      endPage: data.endPage.present ? data.endPage.value : this.endPage,
+      isCompleted: data.isCompleted.present
+          ? data.isCompleted.value
+          : this.isCompleted,
+      completedAt: data.completedAt.present
+          ? data.completedAt.value
+          : this.completedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('KhatmahDayTableData(')
+          ..write('id: $id, ')
+          ..write('khatmahId: $khatmahId, ')
+          ..write('dayNumber: $dayNumber, ')
+          ..write('startPage: $startPage, ')
+          ..write('endPage: $endPage, ')
+          ..write('isCompleted: $isCompleted, ')
+          ..write('completedAt: $completedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    khatmahId,
+    dayNumber,
+    startPage,
+    endPage,
+    isCompleted,
+    completedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is KhatmahDayTableData &&
+          other.id == this.id &&
+          other.khatmahId == this.khatmahId &&
+          other.dayNumber == this.dayNumber &&
+          other.startPage == this.startPage &&
+          other.endPage == this.endPage &&
+          other.isCompleted == this.isCompleted &&
+          other.completedAt == this.completedAt);
+}
+
+class KhatmahDayTableCompanion extends UpdateCompanion<KhatmahDayTableData> {
+  final Value<int> id;
+  final Value<int> khatmahId;
+  final Value<int> dayNumber;
+  final Value<int> startPage;
+  final Value<int> endPage;
+  final Value<bool> isCompleted;
+  final Value<DateTime?> completedAt;
+  const KhatmahDayTableCompanion({
+    this.id = const Value.absent(),
+    this.khatmahId = const Value.absent(),
+    this.dayNumber = const Value.absent(),
+    this.startPage = const Value.absent(),
+    this.endPage = const Value.absent(),
+    this.isCompleted = const Value.absent(),
+    this.completedAt = const Value.absent(),
+  });
+  KhatmahDayTableCompanion.insert({
+    this.id = const Value.absent(),
+    required int khatmahId,
+    required int dayNumber,
+    required int startPage,
+    required int endPage,
+    this.isCompleted = const Value.absent(),
+    this.completedAt = const Value.absent(),
+  }) : khatmahId = Value(khatmahId),
+       dayNumber = Value(dayNumber),
+       startPage = Value(startPage),
+       endPage = Value(endPage);
+  static Insertable<KhatmahDayTableData> custom({
+    Expression<int>? id,
+    Expression<int>? khatmahId,
+    Expression<int>? dayNumber,
+    Expression<int>? startPage,
+    Expression<int>? endPage,
+    Expression<bool>? isCompleted,
+    Expression<DateTime>? completedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (khatmahId != null) 'khatmah_id': khatmahId,
+      if (dayNumber != null) 'day_number': dayNumber,
+      if (startPage != null) 'start_page': startPage,
+      if (endPage != null) 'end_page': endPage,
+      if (isCompleted != null) 'is_completed': isCompleted,
+      if (completedAt != null) 'completed_at': completedAt,
+    });
+  }
+
+  KhatmahDayTableCompanion copyWith({
+    Value<int>? id,
+    Value<int>? khatmahId,
+    Value<int>? dayNumber,
+    Value<int>? startPage,
+    Value<int>? endPage,
+    Value<bool>? isCompleted,
+    Value<DateTime?>? completedAt,
+  }) {
+    return KhatmahDayTableCompanion(
+      id: id ?? this.id,
+      khatmahId: khatmahId ?? this.khatmahId,
+      dayNumber: dayNumber ?? this.dayNumber,
+      startPage: startPage ?? this.startPage,
+      endPage: endPage ?? this.endPage,
+      isCompleted: isCompleted ?? this.isCompleted,
+      completedAt: completedAt ?? this.completedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (khatmahId.present) {
+      map['khatmah_id'] = Variable<int>(khatmahId.value);
+    }
+    if (dayNumber.present) {
+      map['day_number'] = Variable<int>(dayNumber.value);
+    }
+    if (startPage.present) {
+      map['start_page'] = Variable<int>(startPage.value);
+    }
+    if (endPage.present) {
+      map['end_page'] = Variable<int>(endPage.value);
+    }
+    if (isCompleted.present) {
+      map['is_completed'] = Variable<bool>(isCompleted.value);
+    }
+    if (completedAt.present) {
+      map['completed_at'] = Variable<DateTime>(completedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('KhatmahDayTableCompanion(')
+          ..write('id: $id, ')
+          ..write('khatmahId: $khatmahId, ')
+          ..write('dayNumber: $dayNumber, ')
+          ..write('startPage: $startPage, ')
+          ..write('endPage: $endPage, ')
+          ..write('isCompleted: $isCompleted, ')
+          ..write('completedAt: $completedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3092,6 +4066,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ReadingSessionTableTable readingSessionTable =
       $ReadingSessionTableTable(this);
   late final $AyahTextTableTable ayahTextTable = $AyahTextTableTable(this);
+  late final $KhatmahTableTable khatmahTable = $KhatmahTableTable(this);
+  late final $KhatmahDayTableTable khatmahDayTable = $KhatmahDayTableTable(
+    this,
+  );
   late final GlyphDao glyphDao = GlyphDao(this as AppDatabase);
   late final BookmarkDao bookmarkDao = BookmarkDao(this as AppDatabase);
   late final ReadingSessionDao readingSessionDao = ReadingSessionDao(
@@ -3103,6 +4081,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this as AppDatabase,
   );
   late final AyahTextDao ayahTextDao = AyahTextDao(this as AppDatabase);
+  late final KhatmahDao khatmahDao = KhatmahDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3115,6 +4094,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     bookmarkTable,
     readingSessionTable,
     ayahTextTable,
+    khatmahTable,
+    khatmahDayTable,
   ];
 }
 
@@ -4762,6 +5743,505 @@ typedef $$AyahTextTableTableProcessedTableManager =
       AyahTextTableData,
       PrefetchHooks Function()
     >;
+typedef $$KhatmahTableTableCreateCompanionBuilder =
+    KhatmahTableCompanion Function({
+      Value<int> id,
+      required String name,
+      required int totalDays,
+      required DateTime startDate,
+      required int riwayaId,
+      required int pagesPerDay,
+      Value<bool> isActive,
+      required DateTime createdAt,
+    });
+typedef $$KhatmahTableTableUpdateCompanionBuilder =
+    KhatmahTableCompanion Function({
+      Value<int> id,
+      Value<String> name,
+      Value<int> totalDays,
+      Value<DateTime> startDate,
+      Value<int> riwayaId,
+      Value<int> pagesPerDay,
+      Value<bool> isActive,
+      Value<DateTime> createdAt,
+    });
+
+class $$KhatmahTableTableFilterComposer
+    extends Composer<_$AppDatabase, $KhatmahTableTable> {
+  $$KhatmahTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get totalDays => $composableBuilder(
+    column: $table.totalDays,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get startDate => $composableBuilder(
+    column: $table.startDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get riwayaId => $composableBuilder(
+    column: $table.riwayaId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get pagesPerDay => $composableBuilder(
+    column: $table.pagesPerDay,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isActive => $composableBuilder(
+    column: $table.isActive,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$KhatmahTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $KhatmahTableTable> {
+  $$KhatmahTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get totalDays => $composableBuilder(
+    column: $table.totalDays,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get startDate => $composableBuilder(
+    column: $table.startDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get riwayaId => $composableBuilder(
+    column: $table.riwayaId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get pagesPerDay => $composableBuilder(
+    column: $table.pagesPerDay,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isActive => $composableBuilder(
+    column: $table.isActive,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$KhatmahTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $KhatmahTableTable> {
+  $$KhatmahTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<int> get totalDays =>
+      $composableBuilder(column: $table.totalDays, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get startDate =>
+      $composableBuilder(column: $table.startDate, builder: (column) => column);
+
+  GeneratedColumn<int> get riwayaId =>
+      $composableBuilder(column: $table.riwayaId, builder: (column) => column);
+
+  GeneratedColumn<int> get pagesPerDay => $composableBuilder(
+    column: $table.pagesPerDay,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isActive =>
+      $composableBuilder(column: $table.isActive, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$KhatmahTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $KhatmahTableTable,
+          KhatmahTableData,
+          $$KhatmahTableTableFilterComposer,
+          $$KhatmahTableTableOrderingComposer,
+          $$KhatmahTableTableAnnotationComposer,
+          $$KhatmahTableTableCreateCompanionBuilder,
+          $$KhatmahTableTableUpdateCompanionBuilder,
+          (
+            KhatmahTableData,
+            BaseReferences<_$AppDatabase, $KhatmahTableTable, KhatmahTableData>,
+          ),
+          KhatmahTableData,
+          PrefetchHooks Function()
+        > {
+  $$KhatmahTableTableTableManager(_$AppDatabase db, $KhatmahTableTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$KhatmahTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$KhatmahTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$KhatmahTableTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<int> totalDays = const Value.absent(),
+                Value<DateTime> startDate = const Value.absent(),
+                Value<int> riwayaId = const Value.absent(),
+                Value<int> pagesPerDay = const Value.absent(),
+                Value<bool> isActive = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => KhatmahTableCompanion(
+                id: id,
+                name: name,
+                totalDays: totalDays,
+                startDate: startDate,
+                riwayaId: riwayaId,
+                pagesPerDay: pagesPerDay,
+                isActive: isActive,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String name,
+                required int totalDays,
+                required DateTime startDate,
+                required int riwayaId,
+                required int pagesPerDay,
+                Value<bool> isActive = const Value.absent(),
+                required DateTime createdAt,
+              }) => KhatmahTableCompanion.insert(
+                id: id,
+                name: name,
+                totalDays: totalDays,
+                startDate: startDate,
+                riwayaId: riwayaId,
+                pagesPerDay: pagesPerDay,
+                isActive: isActive,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$KhatmahTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $KhatmahTableTable,
+      KhatmahTableData,
+      $$KhatmahTableTableFilterComposer,
+      $$KhatmahTableTableOrderingComposer,
+      $$KhatmahTableTableAnnotationComposer,
+      $$KhatmahTableTableCreateCompanionBuilder,
+      $$KhatmahTableTableUpdateCompanionBuilder,
+      (
+        KhatmahTableData,
+        BaseReferences<_$AppDatabase, $KhatmahTableTable, KhatmahTableData>,
+      ),
+      KhatmahTableData,
+      PrefetchHooks Function()
+    >;
+typedef $$KhatmahDayTableTableCreateCompanionBuilder =
+    KhatmahDayTableCompanion Function({
+      Value<int> id,
+      required int khatmahId,
+      required int dayNumber,
+      required int startPage,
+      required int endPage,
+      Value<bool> isCompleted,
+      Value<DateTime?> completedAt,
+    });
+typedef $$KhatmahDayTableTableUpdateCompanionBuilder =
+    KhatmahDayTableCompanion Function({
+      Value<int> id,
+      Value<int> khatmahId,
+      Value<int> dayNumber,
+      Value<int> startPage,
+      Value<int> endPage,
+      Value<bool> isCompleted,
+      Value<DateTime?> completedAt,
+    });
+
+class $$KhatmahDayTableTableFilterComposer
+    extends Composer<_$AppDatabase, $KhatmahDayTableTable> {
+  $$KhatmahDayTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get khatmahId => $composableBuilder(
+    column: $table.khatmahId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get dayNumber => $composableBuilder(
+    column: $table.dayNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get startPage => $composableBuilder(
+    column: $table.startPage,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get endPage => $composableBuilder(
+    column: $table.endPage,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isCompleted => $composableBuilder(
+    column: $table.isCompleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$KhatmahDayTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $KhatmahDayTableTable> {
+  $$KhatmahDayTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get khatmahId => $composableBuilder(
+    column: $table.khatmahId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get dayNumber => $composableBuilder(
+    column: $table.dayNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get startPage => $composableBuilder(
+    column: $table.startPage,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get endPage => $composableBuilder(
+    column: $table.endPage,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isCompleted => $composableBuilder(
+    column: $table.isCompleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$KhatmahDayTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $KhatmahDayTableTable> {
+  $$KhatmahDayTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get khatmahId =>
+      $composableBuilder(column: $table.khatmahId, builder: (column) => column);
+
+  GeneratedColumn<int> get dayNumber =>
+      $composableBuilder(column: $table.dayNumber, builder: (column) => column);
+
+  GeneratedColumn<int> get startPage =>
+      $composableBuilder(column: $table.startPage, builder: (column) => column);
+
+  GeneratedColumn<int> get endPage =>
+      $composableBuilder(column: $table.endPage, builder: (column) => column);
+
+  GeneratedColumn<bool> get isCompleted => $composableBuilder(
+    column: $table.isCompleted,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => column,
+  );
+}
+
+class $$KhatmahDayTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $KhatmahDayTableTable,
+          KhatmahDayTableData,
+          $$KhatmahDayTableTableFilterComposer,
+          $$KhatmahDayTableTableOrderingComposer,
+          $$KhatmahDayTableTableAnnotationComposer,
+          $$KhatmahDayTableTableCreateCompanionBuilder,
+          $$KhatmahDayTableTableUpdateCompanionBuilder,
+          (
+            KhatmahDayTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $KhatmahDayTableTable,
+              KhatmahDayTableData
+            >,
+          ),
+          KhatmahDayTableData,
+          PrefetchHooks Function()
+        > {
+  $$KhatmahDayTableTableTableManager(
+    _$AppDatabase db,
+    $KhatmahDayTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$KhatmahDayTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$KhatmahDayTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$KhatmahDayTableTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> khatmahId = const Value.absent(),
+                Value<int> dayNumber = const Value.absent(),
+                Value<int> startPage = const Value.absent(),
+                Value<int> endPage = const Value.absent(),
+                Value<bool> isCompleted = const Value.absent(),
+                Value<DateTime?> completedAt = const Value.absent(),
+              }) => KhatmahDayTableCompanion(
+                id: id,
+                khatmahId: khatmahId,
+                dayNumber: dayNumber,
+                startPage: startPage,
+                endPage: endPage,
+                isCompleted: isCompleted,
+                completedAt: completedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int khatmahId,
+                required int dayNumber,
+                required int startPage,
+                required int endPage,
+                Value<bool> isCompleted = const Value.absent(),
+                Value<DateTime?> completedAt = const Value.absent(),
+              }) => KhatmahDayTableCompanion.insert(
+                id: id,
+                khatmahId: khatmahId,
+                dayNumber: dayNumber,
+                startPage: startPage,
+                endPage: endPage,
+                isCompleted: isCompleted,
+                completedAt: completedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$KhatmahDayTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $KhatmahDayTableTable,
+      KhatmahDayTableData,
+      $$KhatmahDayTableTableFilterComposer,
+      $$KhatmahDayTableTableOrderingComposer,
+      $$KhatmahDayTableTableAnnotationComposer,
+      $$KhatmahDayTableTableCreateCompanionBuilder,
+      $$KhatmahDayTableTableUpdateCompanionBuilder,
+      (
+        KhatmahDayTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $KhatmahDayTableTable,
+          KhatmahDayTableData
+        >,
+      ),
+      KhatmahDayTableData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4780,4 +6260,8 @@ class $AppDatabaseManager {
       $$ReadingSessionTableTableTableManager(_db, _db.readingSessionTable);
   $$AyahTextTableTableTableManager get ayahTextTable =>
       $$AyahTextTableTableTableManager(_db, _db.ayahTextTable);
+  $$KhatmahTableTableTableManager get khatmahTable =>
+      $$KhatmahTableTableTableManager(_db, _db.khatmahTable);
+  $$KhatmahDayTableTableTableManager get khatmahDayTable =>
+      $$KhatmahDayTableTableTableManager(_db, _db.khatmahDayTable);
 }

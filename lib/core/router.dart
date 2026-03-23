@@ -4,6 +4,7 @@ import '../features/navigation/navigation_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/stats/stats_screen.dart';
 import '../features/riwaya/riwaya_screen.dart';
+import '../features/khatmah/khatmah_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/',
@@ -27,6 +28,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/settings',
       builder: (context, state) => const SettingsScreen(),
+    ),
+    GoRoute(
+      path: '/khatmah',
+      builder: (context, state) => const KhatmahScreen(),
     ),
   ],
 );
