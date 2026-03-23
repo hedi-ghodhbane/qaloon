@@ -474,6 +474,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   void _showSearchSheet(BuildContext context) {
+    debugPrint('[SEARCH] Opening search sheet');
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,

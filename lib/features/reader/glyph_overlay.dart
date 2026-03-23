@@ -128,16 +128,30 @@ class _FlashingOverlayState extends State<_FlashingOverlay>
   late final AnimationController _controller;
   late final Animation<double> _opacity;
 
+  int _pulseCount = 0;
+
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 500),
-    )..repeat(reverse: true);
-    _opacity = Tween<double>(begin: 0.0, end: 0.4).animate(
+      duration: const Duration(milliseconds: 400),
+    );
+    _opacity = Tween<double>(begin: 0.0, end: 0.45).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
+    _controller.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        _controller.reverse();
+      } else if (status == AnimationStatus.dismissed) {
+        _pulseCount++;
+        if (_pulseCount < 3) {
+          _controller.forward();
+        }
+        // After 3 pulses, widget stays invisible — provider clears it.
+      }
+    });
+    _controller.forward();
   }
 
   @override

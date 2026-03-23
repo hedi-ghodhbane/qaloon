@@ -138,6 +138,14 @@ class _AyahResultTile extends ConsumerWidget {
     return InkWell(
       onTap: () {
         ref.read(currentPageProvider.notifier).setPage(ayah.pageNumber);
+        // Flash highlight the target ayah for 3 seconds.
+        ref.read(highlightAyahProvider.notifier).state =
+            (ayah.surahId, ayah.ayahNumber);
+        Future.delayed(const Duration(seconds: 3), () {
+          if (ref.exists(highlightAyahProvider)) {
+            ref.read(highlightAyahProvider.notifier).state = null;
+          }
+        });
         if (onNavigate != null) {
           onNavigate!();
         } else {

@@ -12,6 +12,8 @@ import 'tables/glyph_table.dart';
 import 'tables/bookmark_table.dart';
 import 'tables/reading_session_table.dart';
 import 'tables/ayah_text_table.dart';
+import 'tables/khatmah_table.dart';
+import 'tables/khatmah_day_table.dart';
 import 'daos/glyph_dao.dart';
 import 'daos/bookmark_dao.dart';
 import 'daos/reading_session_dao.dart';
@@ -19,6 +21,7 @@ import 'daos/surah_dao.dart';
 import 'daos/riwaya_dao.dart';
 import 'daos/page_ayah_index_dao.dart';
 import 'daos/ayah_text_dao.dart';
+import 'daos/khatmah_dao.dart';
 // Re-export normalizeArabic so it's available for seeding.
 export 'daos/ayah_text_dao.dart' show normalizeArabic;
 
@@ -151,6 +154,8 @@ const _qalounSurahStartPages = [
     BookmarkTable,
     ReadingSessionTable,
     AyahTextTable,
+    KhatmahTable,
+    KhatmahDayTable,
   ],
   daos: [
     GlyphDao,
@@ -160,13 +165,14 @@ const _qalounSurahStartPages = [
     RiwayaDao,
     PageAyahIndexDao,
     AyahTextDao,
+    KhatmahDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   static QueryExecutor _openConnection() {
     return driftDatabase(name: 'quran_mushaf_v3');
