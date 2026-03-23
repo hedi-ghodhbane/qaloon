@@ -393,6 +393,17 @@ class _MushafPageState extends ConsumerState<MushafPage> {
           bookmarkedAyah = (bookmark.surahId!, bookmark.ayahNumber!);
         }
 
+        // Watch for flash-highlight from navigation (search, juz, bookmark jump).
+        final flashTarget = ref.watch(highlightAyahProvider);
+        AyahKey? flashAyah;
+        if (flashTarget != null) {
+          // Only flash on THIS page if the ayah exists here.
+          final hasAyah = glyphsAsync.valueOrNull?.any(
+            (g) => g.surahId == flashTarget.$1 && g.ayahNumber == flashTarget.$2,
+          ) ?? false;
+          if (hasAyah) flashAyah = flashTarget;
+        }
+
         // If page isn't available yet, show placeholder without glyphs.
         if (!_isBundledPage && _imagePath != null) {
           final f = File(_imagePath!);
@@ -433,12 +444,13 @@ class _MushafPageState extends ConsumerState<MushafPage> {
                   onTap: widget.onBackgroundTap,
                   child: const SizedBox.expand(),
                 ),
-                // Highlight layer — BEHIND image (selected/bookmarked).
+                // Highlight layer — BEHIND image (selected/bookmarked/flash).
                 GlyphOverlay(
                   glyphs: mapped,
                   selectedAyahs: _selectedAyahs,
                   hiddenAyahs: const {},
                   bookmarkedAyah: bookmarkedAyah,
+                  flashAyah: flashAyah,
                   onTap: _onAyahTap,
                   onLongPress: _onAyahLongPress,
                 ),

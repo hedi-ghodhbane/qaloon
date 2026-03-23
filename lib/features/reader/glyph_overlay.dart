@@ -9,6 +9,7 @@ class GlyphOverlay extends StatelessWidget {
   final Set<AyahKey> selectedAyahs;
   final Set<AyahKey> hiddenAyahs;
   final AyahKey? bookmarkedAyah;
+  final AyahKey? flashAyah;
   final ValueChanged<PageGlyph> onTap;
   final ValueChanged<PageGlyph> onLongPress;
 
@@ -18,6 +19,7 @@ class GlyphOverlay extends StatelessWidget {
     required this.selectedAyahs,
     required this.hiddenAyahs,
     this.bookmarkedAyah,
+    this.flashAyah,
     required this.onTap,
     required this.onLongPress,
   });
@@ -41,6 +43,7 @@ class GlyphOverlay extends StatelessWidget {
         final isSelected = selectedAyahs.contains(key);
         final isHidden = hiddenAyahs.contains(key);
         final isBookmarked = bookmarkedAyah == key;
+        final isFlashing = flashAyah == key;
         final isLastSegment = glyph.position == lastSegment[key];
 
         // Expand the rect vertically for hidden glyphs to cover tashkeel.
@@ -63,12 +66,14 @@ class GlyphOverlay extends StatelessWidget {
             behavior: HitTestBehavior.opaque,
             onTap: () => onTap(glyph),
             onLongPress: () => onLongPress(glyph),
-            child: _AyahOverlayBox(
-              isSelected: isSelected,
-              isHidden: isHidden,
-              isBookmarked: isBookmarked,
-              isLastSegment: isLastSegment,
-            ),
+            child: isFlashing
+                ? _FlashingOverlay()
+                : _AyahOverlayBox(
+                    isSelected: isSelected,
+                    isHidden: isHidden,
+                    isBookmarked: isBookmarked,
+                    isLastSegment: isLastSegment,
+                  ),
           ),
         );
       }).toList(),
@@ -109,5 +114,48 @@ class _AyahOverlayBox extends StatelessWidget {
     }
     // Invisible but hit-testable tap region.
     return const SizedBox.expand();
+  }
+}
+
+/// A pulsing highlight overlay that fades in and out 3 times over ~3 seconds.
+class _FlashingOverlay extends StatefulWidget {
+  @override
+  State<_FlashingOverlay> createState() => _FlashingOverlayState();
+}
+
+class _FlashingOverlayState extends State<_FlashingOverlay>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _opacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    )..repeat(reverse: true);
+    _opacity = Tween<double>(begin: 0.0, end: 0.4).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _opacity,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: const Color(0xFF0D7377),
+          borderRadius: BorderRadius.circular(4),
+        ),
+      ),
+    );
   }
 }

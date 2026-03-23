@@ -83,6 +83,13 @@ class _SurahListState extends ConsumerState<SurahList> {
         .getPageOfAyah(surahId, ayahNumber, riwayaId);
     if (page != null && mounted) {
       ref.read(currentPageProvider.notifier).setPage(page);
+      // Flash highlight the target ayah for 3 seconds.
+      ref.read(highlightAyahProvider.notifier).state = (surahId, ayahNumber);
+      Future.delayed(const Duration(seconds: 3), () {
+        if (ref.exists(highlightAyahProvider)) {
+          ref.read(highlightAyahProvider.notifier).state = null;
+        }
+      });
       if (mounted) context.go('/');
     }
   }
@@ -244,6 +251,13 @@ class _SurahTile extends ConsumerWidget {
             await db.pageAyahIndexDao.getFirstPageOfSurah(surah.id, riwayaId);
         if (page != null && context.mounted) {
           ref.read(currentPageProvider.notifier).setPage(page);
+          // Flash highlight first ayah of surah.
+          ref.read(highlightAyahProvider.notifier).state = (surah.id, 1);
+          Future.delayed(const Duration(seconds: 3), () {
+            if (ref.exists(highlightAyahProvider)) {
+              ref.read(highlightAyahProvider.notifier).state = null;
+            }
+          });
           context.go('/');
         }
       },

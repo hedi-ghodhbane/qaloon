@@ -513,6 +513,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final bookmark = ref.read(bookmarkNotifierProvider).valueOrNull;
     if (bookmark != null) {
       ref.read(currentPageProvider.notifier).setPage(bookmark.pageNumber);
+      // Flash the bookmarked ayah if set.
+      if (bookmark.surahId != null && bookmark.ayahNumber != null) {
+        ref.read(highlightAyahProvider.notifier).state =
+            (bookmark.surahId!, bookmark.ayahNumber!);
+        Future.delayed(const Duration(seconds: 3), () {
+          ref.read(highlightAyahProvider.notifier).state = null;
+        });
+      }
     }
   }
 }

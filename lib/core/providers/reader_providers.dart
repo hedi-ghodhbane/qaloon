@@ -27,6 +27,13 @@ final readerActionProvider = StateProvider<ReaderAction?>((ref) => null);
 /// Whether the current page has any hidden ayahs (set by MushafPage).
 final hasHiddenAyahsProvider = StateProvider<bool>((ref) => false);
 
+/// Temporarily highlight an ayah (surahId, ayahNumber) for ~3 seconds.
+/// Set by search, juz navigation, bookmark jump. MushafPage watches this
+/// and shows a pulse animation, then auto-clears.
+final highlightAyahProvider = StateProvider<(int surahId, int ayahNumber)?>(
+  (ref) => null,
+);
+
 final currentPageProvider = StateNotifierProvider<CurrentPageNotifier, int>(
   (ref) => CurrentPageNotifier(),
 );
