@@ -1,18 +1,13 @@
 import 'dart:io';
 
-import 'package:archive/archive.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../core/constants.dart';
 
-/// ZIP URL for Qaloun pages 31-604 (hosted on our GitHub release — ~281MB).
-const _kZipUrl =
-    'https://github.com/hedi-ghodhbane/qaloon/releases/download/pages-v1/qaloun_pages_31_604.zip';
-
-/// Pages in our release ZIP are at the root: page031.png, page032.png, etc.
-const _kZipImagePrefix = '';
+/// Number of concurrent page downloads.
+const _kConcurrency = 10;
 
 class DownloadService {
   final Dio _dio;
@@ -20,8 +15,8 @@ class DownloadService {
   DownloadService({Dio? dio})
       : _dio = dio ??
             Dio(BaseOptions(
-              connectTimeout: const Duration(seconds: 30),
-              receiveTimeout: const Duration(minutes: 10),
+              connectTimeout: const Duration(seconds: 15),
+              receiveTimeout: const Duration(seconds: 30),
             ));
 
   /// Returns the local directory for a riwaya's downloaded pages.
@@ -48,8 +43,8 @@ class DownloadService {
         .length;
   }
 
-  /// Downloads the full repo ZIP then extracts only the Qaloun page images.
-  /// Yields progress: 0.0–0.7 for download, 0.7–1.0 for extraction.
+  /// Downloads pages one-by-one from jsDelivr CDN with concurrency.
+  /// Yields progress 0.0–1.0. Resumable — skips already downloaded pages.
   Stream<double> downloadRemainingPages({
     required String riwayaKey,
     int startPage = kBundledPages + 1,
@@ -65,83 +60,59 @@ class DownloadService {
       return;
     }
 
-    // --- Phase 1: Download ZIP (0.0–0.7) ---
-    final tmpDir = await getTemporaryDirectory();
-    final zipPath = '${tmpDir.path}/qaloun_pages.zip';
-    final zipFile = File(zipPath);
+    // Build list of pages that still need downloading.
+    final pagesToDownload = <int>[];
+    for (int p = startPage; p <= kTotalPages; p++) {
+      final file = File('${dir.path}/$p.png');
+      if (!file.existsSync() || file.lengthSync() == 0) {
+        pagesToDownload.add(p);
+      }
+    }
 
-    debugPrint('[DOWNLOAD] Downloading ZIP from $_kZipUrl');
+    if (pagesToDownload.isEmpty) {
+      yield 1.0;
+      return;
+    }
 
-    await _dio.download(
-      _kZipUrl,
-      zipPath,
-      onReceiveProgress: (received, total) {
-        if (total > 0) {
-          // Map download progress to 0.0–0.7
-        }
-      },
-    );
+    final totalToDownload = pagesToDownload.length;
+    var completed = 0;
 
-    // Emit 0.7 after download completes.
-    yield 0.7;
-    debugPrint('[DOWNLOAD] ZIP downloaded: ${zipFile.lengthSync()} bytes');
+    debugPrint('[DOWNLOAD] $totalToDownload pages to download via jsDelivr CDN');
 
-    // --- Phase 2: Extract images (0.7–1.0) ---
-    yield* _extractZip(zipPath, dir.path, startPage);
+    // Process in batches of _kConcurrency.
+    for (var i = 0; i < pagesToDownload.length; i += _kConcurrency) {
+      final batch = pagesToDownload.skip(i).take(_kConcurrency);
+      final futures = batch.map((page) => _downloadPage(page, dir.path));
+      await Future.wait(futures);
 
-    // Cleanup ZIP.
-    try {
-      zipFile.deleteSync();
-    } catch (_) {}
+      completed += batch.length;
+      final progress = completed / totalToDownload;
+      yield progress;
+
+      if (completed % 50 == 0 || completed == totalToDownload) {
+        debugPrint('[DOWNLOAD] $completed/$totalToDownload pages done');
+      }
+    }
 
     yield 1.0;
-    debugPrint('[DOWNLOAD] Extraction complete.');
+    debugPrint('[DOWNLOAD] Done — $totalToDownload pages downloaded.');
   }
 
-  /// Extract page PNGs from the ZIP in an isolate to avoid blocking the UI.
-  Stream<double> _extractZip(
-    String zipPath,
-    String outputDir,
-    int startPage,
-  ) async* {
-    final bytes = await File(zipPath).readAsBytes();
+  /// Download a single page image from jsDelivr CDN.
+  Future<void> _downloadPage(int pageNum, String outputDir) async {
+    final paddedPage = pageNum.toString().padLeft(3, '0');
+    final url = '$kQalounPagesBaseUrl/page$paddedPage.png';
+    final filePath = '$outputDir/$pageNum.png';
 
-    // Decode ZIP in an isolate for performance.
-    final archive = await compute(_decodeZip, bytes);
-
-    // Filter to only page PNG files.
-    final pageFiles = archive.files.where((f) {
-      if (!f.isFile) return false;
-      final name = f.name;
-      return name.startsWith('page') && name.endsWith('.png');
-    }).toList();
-
-    debugPrint('[DOWNLOAD] Found ${pageFiles.length} page images in ZIP');
-
-    final total = pageFiles.length;
-    var extracted = 0;
-
-    for (final file in pageFiles) {
-      // Convert pageNNN.png → N.png (e.g. page042.png → 42.png)
-      final match = RegExp(r'page(\d+)\.png').firstMatch(file.name);
-      if (match == null) continue;
-
-      final pageNum = int.parse(match.group(1)!);
-
-      // Skip bundled pages (already in assets).
-      if (pageNum < startPage) {
-        extracted++;
-        continue;
+    try {
+      await _dio.download(url, filePath);
+    } on DioException catch (e) {
+      debugPrint('[DOWNLOAD] Failed page $pageNum: $e');
+      // Don't rethrow — skip failed pages, they'll be retried next time.
+      final file = File(filePath);
+      if (file.existsSync() && file.lengthSync() == 0) {
+        file.deleteSync();
       }
-
-      final outFile = File('$outputDir/$pageNum.png');
-      if (!outFile.existsSync() || outFile.lengthSync() == 0) {
-        outFile.writeAsBytesSync(file.content as List<int>);
-      }
-
-      extracted++;
-      // Map extraction progress to 0.7–1.0
-      yield 0.7 + (extracted / total) * 0.3;
     }
   }
 
@@ -152,9 +123,4 @@ class DownloadService {
       await dir.delete(recursive: true);
     }
   }
-}
-
-/// Top-level function for compute() — decodes ZIP bytes in an isolate.
-Archive _decodeZip(Uint8List bytes) {
-  return ZipDecoder().decodeBytes(bytes);
 }

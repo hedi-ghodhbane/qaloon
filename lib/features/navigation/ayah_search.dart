@@ -69,7 +69,7 @@ class _AyahSearchState extends ConsumerState<AyahSearch> {
                     )
                   : null,
               filled: true,
-              fillColor: AppColors.surfaceVariant,
+              fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
               contentPadding: const EdgeInsets.symmetric(vertical: 10),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
@@ -86,11 +86,13 @@ class _AyahSearchState extends ConsumerState<AyahSearch> {
         else if (_results.isEmpty && _lastQuery.length >= 2)
           const Expanded(child: Center(child: Text('لا توجد نتائج')))
         else if (_results.isEmpty)
-          const Expanded(
+          Expanded(
             child: Center(
               child: Text(
                 'اكتب كلمة أو جزء من آية للبحث',
-                style: TextStyle(color: AppColors.textSecondary),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
           )
@@ -141,7 +143,9 @@ class _AyahResultTile extends ConsumerWidget {
                     vertical: 3,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -156,8 +160,8 @@ class _AyahResultTile extends ConsumerWidget {
                 const Spacer(),
                 Text(
                   'صفحة ${ayah.pageNumber}',
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontSize: 11,
                   ),
                 ),
@@ -168,10 +172,10 @@ class _AyahResultTile extends ConsumerWidget {
             RichText(
               textDirection: TextDirection.rtl,
               text: TextSpan(
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Noto Naskh Arabic',
                   fontSize: 16,
-                  color: AppColors.textPrimary,
+                  color: Theme.of(context).colorScheme.onSurface,
                   height: 1.8,
                 ),
                 children: spans,

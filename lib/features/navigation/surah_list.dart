@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/db/app_database.dart';
 import '../../core/providers/db_provider.dart';
 import '../../core/providers/reader_providers.dart';
-import '../../shared/theme/colors.dart';
+
 import '../../shared/widgets/loading_indicator.dart';
 
 final allSurahsProvider = FutureProvider<List<SurahTableData>>((ref) {
@@ -130,7 +130,7 @@ class _SurahListState extends ConsumerState<SurahList> {
                         )
                       : null,
                   filled: true,
-                  fillColor: AppColors.surfaceVariant,
+                  fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                   contentPadding: const EdgeInsets.symmetric(vertical: 10),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
@@ -144,7 +144,7 @@ class _SurahListState extends ConsumerState<SurahList> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 child: Material(
-                  color: AppColors.gold.withValues(alpha: 0.12),
+                  color: Theme.of(context).colorScheme.tertiary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(12),
@@ -156,8 +156,8 @@ class _SurahListState extends ConsumerState<SurahList> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.my_location, size: 20,
-                              color: AppColors.gold),
+                          Icon(Icons.my_location, size: 20,
+                              color: Theme.of(context).colorScheme.tertiary),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
@@ -169,8 +169,8 @@ class _SurahListState extends ConsumerState<SurahList> {
                               ),
                             ),
                           ),
-                          const Icon(Icons.arrow_forward_ios, size: 14,
-                              color: AppColors.textSecondary),
+                          Icon(Icons.arrow_forward_ios, size: 14,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant),
                         ],
                       ),
                     ),
