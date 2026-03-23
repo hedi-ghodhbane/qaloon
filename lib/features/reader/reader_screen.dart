@@ -11,6 +11,7 @@ import '../../core/providers/db_provider.dart';
 import '../../core/providers/reader_providers.dart';
 import '../../core/providers/riwaya_providers.dart';
 import '../../core/providers/stats_providers.dart';
+import '../../core/data/quran_divisions.dart';
 import '../../shared/theme/colors.dart';
 import '../navigation/ayah_search.dart';
 import 'mushaf_page_view.dart';
@@ -180,6 +181,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                               fontWeight: FontWeight.bold,
                             ),
                           ),
+                          _buildDivisionBadge(currentPage),
                           _buildDownloadChip(),
                         ],
                       ),
@@ -382,6 +384,24 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildDivisionBadge(int page) {
+    final div = divisionForPage(page);
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          'ج${div.juz} | ح${div.hizb}',
+          style: const TextStyle(color: Colors.white70, fontSize: 11),
+        ),
+      ),
     );
   }
 

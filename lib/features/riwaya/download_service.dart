@@ -13,13 +13,37 @@ class DownloadService {
   Future<void> init() async {
     if (_initialized) return;
     _initialized = true;
-    // Configure for parallel downloads.
+
+    // Configure for parallel downloads + foreground mode for reliability.
     await FileDownloader().configure(
       globalConfig: [
         (Config.holdingQueue, (null, 15, null)),
       ],
+      androidConfig: [
+        (Config.runInForeground, Config.always),
+      ],
     );
-    debugPrint('[DOWNLOAD] Background downloader initialized');
+
+    // Configure group notification for batch downloads.
+    FileDownloader().configureNotificationForGroup(
+      'qaloun_pages',
+      running: const TaskNotification(
+        'جارٍ تحميل صفحات المصحف',
+        '{numFinished} من {numTotal} صفحة',
+      ),
+      complete: const TaskNotification(
+        'تم تحميل المصحف',
+        'تم تحميل {numTotal} صفحة بنجاح',
+      ),
+      error: const TaskNotification(
+        'خطأ في التحميل',
+        'فشل تحميل {numFailed} صفحة',
+      ),
+      progressBar: true,
+      groupNotificationId: 'qaloun_download',
+    );
+
+    debugPrint('[DOWNLOAD] Background downloader initialized with notifications');
   }
 
   /// Returns the local directory for a riwaya's downloaded pages.

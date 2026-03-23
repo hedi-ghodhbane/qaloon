@@ -1,6 +1,6 @@
-/// Quran division data: juz, hizb, and quarter (rub al-hizb) boundaries.
-/// Page numbers are specific to the Qaloun riwaya mushaf (604 pages).
-/// Quarter starting ayahs are universal across all riwayat.
+// Quran division data: juz, hizb, and quarter (rub al-hizb) boundaries.
+// Page numbers are specific to the Qaloun riwaya mushaf (604 pages).
+// Quarter starting ayahs are universal across all riwayat.
 
 class QuranDivision {
   final int juz;
