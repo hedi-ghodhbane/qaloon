@@ -10,11 +10,13 @@ import '../../core/providers/bookmark_provider.dart';
 import '../../core/providers/db_provider.dart';
 import '../../core/providers/reader_providers.dart';
 import '../../core/providers/riwaya_providers.dart';
+import '../../core/providers/khatmah_providers.dart';
 import '../../core/providers/stats_providers.dart';
 import '../../core/data/quran_divisions.dart';
 import '../../shared/theme/colors.dart';
 import '../navigation/ayah_search.dart';
 import 'mushaf_page_view.dart';
+import 'quarters_drawer.dart';
 
 class ReaderScreen extends ConsumerStatefulWidget {
   const ReaderScreen({super.key});
@@ -85,11 +87,56 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     });
   }
 
+  bool _khatmahPromptShown = false;
+
   void _onPageChanged(int newPage) {
     // Cancel old timer — page wasn't read long enough.
     _dwellTimer?.cancel();
     _currentTrackedPage = newPage;
     _startDwellTimer();
+    _checkKhatmahDayEnd(newPage);
+  }
+
+  Future<void> _checkKhatmahDayEnd(int page) async {
+    if (_khatmahPromptShown) return;
+    final khatmah = ref.read(activeKhatmahProvider).valueOrNull;
+    if (khatmah == null) return;
+
+    final db = ref.read(appDatabaseProvider);
+    final currentDay = await db.khatmahDao.getCurrentDay(khatmah.id);
+    if (currentDay == null) return;
+
+    if (page == currentDay.endPage) {
+      _khatmahPromptShown = true;
+      if (!mounted) return;
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('هل أتممت ورد اليوم؟'),
+          content: Text(
+            'اليوم ${currentDay.dayNumber} • صفحة ${currentDay.startPage}–${currentDay.endPage}',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('ليس بعد'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('تم الحمد لله'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed == true) {
+        await db.khatmahDao.markDayCompleted(currentDay.id);
+        ref.invalidate(khatmahDaysProvider(khatmah.id));
+        ref.invalidate(currentKhatmahDayProvider(khatmah.id));
+        ref.invalidate(activeKhatmahProvider);
+      }
+      // Allow showing again for next day.
+      _khatmahPromptShown = false;
+    }
   }
 
   void _saveSession() {
@@ -133,6 +180,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
     return Scaffold(
       backgroundColor: isDark ? Colors.black : Colors.white,
+      endDrawer: const MushafDrawer(),
       body: Stack(
           children: [
             MushafPageView(
@@ -201,7 +249,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                           ),
                           IconButton(
                             icon: const Icon(Icons.menu, color: Colors.white),
-                            onPressed: () => context.push('/navigation'),
+                            onPressed: () => Scaffold.of(context).openEndDrawer(),
                           ),
                           IconButton(
                             icon: const Icon(Icons.settings_outlined, color: Colors.white),
@@ -270,6 +318,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           icon: Icons.search,
           label: 'بحث',
           onTap: () => _showSearchSheet(context),
+        ),
+        _BottomAction(
+          icon: Icons.menu_book_rounded,
+          label: 'ختمة',
+          onTap: () => context.push('/khatmah'),
         ),
         _BottomAction(
           icon: Icons.bar_chart_rounded,
@@ -514,12 +567,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final bookmark = ref.read(bookmarkNotifierProvider).valueOrNull;
     if (bookmark != null) {
       ref.read(currentPageProvider.notifier).setPage(bookmark.pageNumber);
-      // Flash the bookmarked ayah if set.
+      // Delay flash so new page loads glyphs first.
       if (bookmark.surahId != null && bookmark.ayahNumber != null) {
-        ref.read(highlightAyahProvider.notifier).state =
-            (bookmark.surahId!, bookmark.ayahNumber!);
-        Future.delayed(const Duration(seconds: 3), () {
-          ref.read(highlightAyahProvider.notifier).state = null;
+        Future.delayed(const Duration(milliseconds: 500), () {
+          ref.read(highlightAyahProvider.notifier).state =
+              (bookmark.surahId!, bookmark.ayahNumber!);
+          Future.delayed(const Duration(seconds: 3), () {
+            ref.read(highlightAyahProvider.notifier).state = null;
+          });
         });
       }
     }
