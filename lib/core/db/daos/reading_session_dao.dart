@@ -104,6 +104,13 @@ class ReadingSessionDao extends DatabaseAccessor<AppDatabase>
     }
     return streak;
   }
+
+  /// Delete all reading sessions for a riwaya (reset stats).
+  Future<void> deleteAllSessions(int riwayaId) {
+    return (delete(readingSessionTable)
+          ..where((s) => s.riwayaId.equals(riwayaId)))
+        .go();
+  }
 }
 
 class DailyPageCount {
