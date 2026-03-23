@@ -347,8 +347,8 @@ class _MushafPageState extends ConsumerState<MushafPage> {
   /// Compute the offset and scale for BoxFit.contain within the given box.
   /// Returns (offsetX, offsetY, scale).
   (double, double, double) _containFit(double boxW, double boxH) {
-    const imgW = 1260.0; // native image width (GoldenQuranRes)
-    const imgH = 1969.0; // native image height
+    const imgW = 1310.0; // native image width (King Fahd Complex)
+    const imgH = 2032.0; // native image height
     final scaleW = boxW / imgW;
     final scaleH = boxH / imgH;
     final scale = scaleW < scaleH ? scaleW : scaleH;

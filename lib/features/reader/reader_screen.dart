@@ -53,6 +53,17 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         _onPageChanged(next);
       }
     });
+
+    // Auto-clear highlight after 3 seconds whenever it's set.
+    ref.listenManual(highlightAyahProvider, (prev, next) {
+      if (next != null) {
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted) {
+            ref.read(highlightAyahProvider.notifier).state = null;
+          }
+        });
+      }
+    });
   }
 
   @override
@@ -153,8 +164,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       pagesRead: pagesRead,
       riwayaId: riwayaId,
     );
-    debugPrint('[SESSION] Saved: $pagesRead pages read '
-        '($_sessionStartPage→$endPage)');
+    debugPrint(
+      '[SESSION] Saved: $pagesRead pages read '
+      '($_sessionStartPage→$endPage)',
+    );
     _readPages.clear();
     _sessionStartPage = ref.read(currentPageProvider);
     // Invalidate stats so they refresh if the stats screen is open.
@@ -171,10 +184,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final riwayaId = ref.watch(currentRiwayaIdProvider);
     final bookmark = ref.watch(bookmarkNotifierProvider);
 
-    final isBookmarked = bookmark.whenOrNull(
-          data: (b) => b?.pageNumber == currentPage,
-        ) ??
-        false;
+    final isBookmarked =
+        bookmark.whenOrNull(data: (b) => b?.pageNumber == currentPage) ?? false;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -182,115 +193,120 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       backgroundColor: isDark ? Colors.black : Colors.white,
       endDrawer: const MushafDrawer(),
       body: Stack(
-          children: [
-            MushafPageView(
-              onBackgroundTap: _toggleOverlay,
-              key: _pageViewKey,
-              initialPage: currentPage,
-              riwayaId: riwayaId,
-              riwayaKey: RiwayaKeys.qaloun,
-              imageNativeWidth: kQalounImageNativeWidth,
-              isBundled: true,
-            ),
-            if (_showOverlay) ...[
-              // Top bar: page number + surah name.
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  padding: EdgeInsets.only(
-                    top: MediaQuery.of(context).padding.top + 8,
-                    left: 16,
-                    right: 16,
-                    bottom: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.black.withValues(alpha: 0.5),
-                        Colors.transparent,
-                      ],
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'صفحة $currentPage',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          _buildDivisionBadge(currentPage),
-                          _buildDownloadChip(),
-                        ],
-                      ),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: Icon(
-                              isBookmarked
-                                  ? Icons.bookmark
-                                  : Icons.bookmark_border,
-                              color: isBookmarked
-                                  ? AppColors.gold
-                                  : Colors.white,
-                            ),
-                            onPressed: () => _toggleBookmark(currentPage, riwayaId, isBookmarked),
-                          ),
-                          Builder(
-                            builder: (ctx) => IconButton(
-                              icon: const Icon(Icons.menu, color: Colors.white),
-                              onPressed: () => Scaffold.of(ctx).openEndDrawer(),
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.settings_outlined, color: Colors.white),
-                            onPressed: () => context.push('/settings'),
-                          ),
-                        ],
-                      ),
+        children: [
+          MushafPageView(
+            onBackgroundTap: _toggleOverlay,
+            key: _pageViewKey,
+            initialPage: currentPage,
+            riwayaId: riwayaId,
+            riwayaKey: RiwayaKeys.qaloun,
+            imageNativeWidth: kQalounImageNativeWidth,
+            isBundled: true,
+          ),
+          if (_showOverlay) ...[
+            // Top bar: page number + surah name.
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                padding: EdgeInsets.only(
+                  top: MediaQuery.of(context).padding.top + 8,
+                  left: 16,
+                  right: 16,
+                  bottom: 8,
+                ),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.5),
+                      Colors.transparent,
                     ],
                   ),
                 ),
-              ),
-              // Bottom bar: navigation shortcuts.
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  padding: EdgeInsets.only(
-                    bottom: MediaQuery.of(context).padding.bottom + 8,
-                    left: 16,
-                    right: 16,
-                    top: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.bottomCenter,
-                      end: Alignment.topCenter,
-                      colors: [
-                        Colors.black.withValues(alpha: 0.5),
-                        Colors.transparent,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'صفحة $currentPage',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        _buildDivisionBadge(currentPage),
+                        _buildDownloadChip(),
                       ],
                     ),
-                  ),
-                  child: _buildBottomBar(context),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: Icon(
+                            isBookmarked
+                                ? Icons.bookmark
+                                : Icons.bookmark_border,
+                            color: isBookmarked ? AppColors.gold : Colors.white,
+                          ),
+                          onPressed: () => _toggleBookmark(
+                            currentPage,
+                            riwayaId,
+                            isBookmarked,
+                          ),
+                        ),
+                        Builder(
+                          builder: (ctx) => IconButton(
+                            icon: const Icon(Icons.menu, color: Colors.white),
+                            onPressed: () => Scaffold.of(ctx).openEndDrawer(),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.settings_outlined,
+                            color: Colors.white,
+                          ),
+                          onPressed: () => context.push('/settings'),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
+            // Bottom bar: navigation shortcuts.
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).padding.bottom + 8,
+                  left: 16,
+                  right: 16,
+                  top: 8,
+                ),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.5),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+                child: _buildBottomBar(context),
+              ),
+            ),
           ],
-        ),
+        ],
+      ),
     );
   }
 
@@ -313,7 +329,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         ),
         _BottomAction(
           icon: Icons.auto_fix_high,
-          label: 'تسميع',
+          label: 'إخفاء',
           onTap: () => setState(() => _tarteelExpanded = true),
         ),
         _BottomAction(
@@ -404,8 +420,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                     icon: mode == ReaderMode.select
                         ? Icons.check_circle_outline
                         : Icons.select_all,
-                    label:
-                        mode == ReaderMode.select ? 'إخفاء المحدد' : 'تحديد',
+                    label: mode == ReaderMode.select ? 'إخفاء المحدد' : 'تحديد',
                     active: mode == ReaderMode.select,
                     onTap: () {
                       if (mode == ReaderMode.select) {
@@ -434,8 +449,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.keyboard_arrow_down,
-                color: Colors.white, size: 20),
+            child: const Icon(
+              Icons.keyboard_arrow_down,
+              color: Colors.white,
+              size: 20,
+            ),
           ),
         ),
       ],
@@ -479,7 +497,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               children: [
                 Icon(Icons.refresh, color: Colors.white, size: 12),
                 SizedBox(width: 4),
-                Text('إعادة', style: TextStyle(color: Colors.white, fontSize: 10)),
+                Text(
+                  'إعادة',
+                  style: TextStyle(color: Colors.white, fontSize: 10),
+                ),
               ],
             ),
           ),
@@ -521,10 +542,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     if (isBookmarked) {
       ref.read(bookmarkNotifierProvider.notifier).clearBookmark();
     } else {
-      ref.read(bookmarkNotifierProvider.notifier).setBookmark(
-            pageNumber: currentPage,
-            riwayaId: riwayaId,
-          );
+      ref
+          .read(bookmarkNotifierProvider.notifier)
+          .setBookmark(pageNumber: currentPage, riwayaId: riwayaId);
     }
   }
 
@@ -549,15 +569,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
             const SizedBox(height: 8),
             Expanded(
-              child: AyahSearch(
-                onNavigate: () => Navigator.of(context).pop(),
-              ),
+              child: AyahSearch(onNavigate: () => Navigator.of(context).pop()),
             ),
           ],
         ),
@@ -572,8 +592,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       // Delay flash so new page loads glyphs first.
       if (bookmark.surahId != null && bookmark.ayahNumber != null) {
         Future.delayed(const Duration(milliseconds: 500), () {
-          ref.read(highlightAyahProvider.notifier).state =
-              (bookmark.surahId!, bookmark.ayahNumber!);
+          ref.read(highlightAyahProvider.notifier).state = (
+            bookmark.surahId!,
+            bookmark.ayahNumber!,
+          );
           Future.delayed(const Duration(seconds: 3), () {
             ref.read(highlightAyahProvider.notifier).state = null;
           });
@@ -643,9 +665,7 @@ class _TarteelChip extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           border: active
               ? null
-              : Border.all(
-                  color: Colors.white.withValues(alpha: 0.3),
-                ),
+              : Border.all(color: Colors.white.withValues(alpha: 0.3)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

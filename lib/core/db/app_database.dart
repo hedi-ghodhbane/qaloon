@@ -172,7 +172,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   static QueryExecutor _openConnection() {
     return driftDatabase(name: 'quran_mushaf_v3');
@@ -207,7 +207,7 @@ class AppDatabase extends _$AppDatabase {
           isBundled: const Value(true),
           isDownloaded: const Value(true),
           downloadedAt: Value(DateTime.now()),
-          imageNativeWidth: const Value(1260),
+          imageNativeWidth: const Value(1310),
         ),
         RiwayaTableCompanion.insert(
           key: 'warsh',

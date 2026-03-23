@@ -50,9 +50,11 @@ Future<void> seedPageAyahIndex(AppDatabase db) async {
 
   for (int surah = 1; surah <= 114; surah++) {
     final startPage = _qalounSurahStartPages[surah - 1];
-    final endPage = surah < 114
+    var endPage = surah < 114
         ? _qalounSurahStartPages[surah] - 1
         : 604;
+    // When multiple surahs share the same page, ensure at least one row.
+    if (endPage < startPage) endPage = startPage;
 
     for (int page = startPage; page <= endPage; page++) {
       rows.add(PageAyahIndexTableCompanion.insert(

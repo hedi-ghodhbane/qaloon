@@ -85,24 +85,87 @@ class MushafDrawer extends StatelessWidget {
 
 // ─── Surahs Tab ──────────────────────────────────────────────────────────────
 
-class _SurahsTab extends ConsumerWidget {
+class _SurahsTab extends ConsumerStatefulWidget {
   const _SurahsTab();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_SurahsTab> createState() => _SurahsTabState();
+}
+
+class _SurahsTabState extends ConsumerState<_SurahsTab> {
+  final _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<SurahTableData> _filter(List<SurahTableData> surahs) {
+    if (_query.isEmpty) return surahs;
+    final q = _query.toLowerCase();
+    final asNumber = int.tryParse(q);
+    return surahs.where((s) {
+      if (asNumber != null && s.id == asNumber) return true;
+      return s.nameArabic.contains(_query) ||
+          s.nameTransliterated.toLowerCase().contains(q);
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final surahsAsync = ref.watch(allSurahsProvider);
+    final colorScheme = Theme.of(context).colorScheme;
 
     return surahsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(child: Text('$e')),
-      data: (surahs) => ListView.builder(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        itemCount: surahs.length,
-        itemBuilder: (context, index) {
-          final surah = surahs[index];
-          return _DrawerSurahTile(surah: surah);
-        },
-      ),
+      data: (allSurahs) {
+        final surahs = _filter(allSurahs);
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+              child: TextField(
+                controller: _searchController,
+                onChanged: (v) => setState(() => _query = v),
+                decoration: InputDecoration(
+                  hintText: 'ابحث عن سورة...',
+                  prefixIcon: const Icon(Icons.search, size: 20),
+                  suffixIcon: _query.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.close, size: 18),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _query = '');
+                          },
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: colorScheme.surfaceContainerHighest,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                  isDense: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                itemCount: surahs.length,
+                itemBuilder: (context, index) {
+                  final surah = surahs[index];
+                  return _DrawerSurahTile(surah: surah);
+                },
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -154,7 +217,8 @@ class _DrawerSurahTile extends ConsumerWidget {
             await db.pageAyahIndexDao.getFirstPageOfSurah(surah.id, riwayaId);
         if (page != null && context.mounted) {
           ref.read(currentPageProvider.notifier).setPage(page);
-          Navigator.of(context).pop();
+          ref.read(highlightAyahProvider.notifier).state = (surah.id, 1);
+          if (context.mounted) Navigator.of(context).pop();
         }
       },
     );
@@ -257,6 +321,8 @@ class _QuarterDrawerTile extends ConsumerWidget {
     return InkWell(
       onTap: () {
         ref.read(currentPageProvider.notifier).setPage(division.startPage);
+        ref.read(highlightAyahProvider.notifier).state =
+            (division.surah, division.ayah);
         Navigator.of(context).pop();
       },
       child: Container(

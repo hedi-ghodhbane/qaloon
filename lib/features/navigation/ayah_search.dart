@@ -138,24 +138,13 @@ class _AyahResultTile extends ConsumerWidget {
     return InkWell(
       onTap: () {
         ref.read(currentPageProvider.notifier).setPage(ayah.pageNumber);
-        // Close sheet / navigate first.
+        ref.read(highlightAyahProvider.notifier).state =
+            (ayah.surahId, ayah.ayahNumber);
         if (onNavigate != null) {
           onNavigate!();
         } else if (context.mounted) {
           context.go('/');
         }
-        // Delay flash so the new page has time to load glyphs.
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (ref.exists(highlightAyahProvider)) {
-            ref.read(highlightAyahProvider.notifier).state =
-                (ayah.surahId, ayah.ayahNumber);
-          }
-          Future.delayed(const Duration(seconds: 3), () {
-            if (ref.exists(highlightAyahProvider)) {
-              ref.read(highlightAyahProvider.notifier).state = null;
-            }
-          });
-        });
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
