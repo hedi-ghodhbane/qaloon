@@ -12,6 +12,7 @@ import '../../core/providers/reader_providers.dart';
 import '../../core/providers/riwaya_providers.dart';
 import '../../core/providers/stats_providers.dart';
 import '../../shared/theme/colors.dart';
+import '../navigation/ayah_search.dart';
 import 'mushaf_page_view.dart';
 
 class ReaderScreen extends ConsumerStatefulWidget {
@@ -264,6 +265,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           onTap: () => setState(() => _tarteelExpanded = true),
         ),
         _BottomAction(
+          icon: Icons.search,
+          label: 'بحث',
+          onTap: () => _showSearchSheet(context),
+        ),
+        _BottomAction(
           icon: Icons.bar_chart_rounded,
           label: 'إحصائيات',
           onTap: () => context.push('/stats'),
@@ -445,6 +451,42 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
             riwayaId: riwayaId,
           );
     }
+  }
+
+  void _showSearchSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.4,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) => Column(
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: AyahSearch(
+                onNavigate: () => Navigator.of(context).pop(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _goToBookmark() {

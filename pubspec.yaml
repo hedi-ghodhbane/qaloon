@@ -14,7 +14,6 @@ dependencies:
   drift: any
   drift_flutter: any
   go_router: any
-  dio: any
   fl_chart: any
   path_provider: any
   path: any
@@ -22,7 +21,7 @@ dependencies:
   collection: any
   shared_preferences: any
   share_plus: any
-  archive: ^4.0.9
+  background_downloader: any
 
 dev_dependencies:
   flutter_test:

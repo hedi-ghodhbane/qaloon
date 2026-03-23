@@ -8,7 +8,9 @@ import '../../core/providers/reader_providers.dart';
 import '../../shared/theme/colors.dart';
 
 class AyahSearch extends ConsumerStatefulWidget {
-  const AyahSearch({super.key});
+  final VoidCallback? onNavigate;
+
+  const AyahSearch({super.key, this.onNavigate});
 
   @override
   ConsumerState<AyahSearch> createState() => _AyahSearchState();
@@ -103,7 +105,11 @@ class _AyahSearchState extends ConsumerState<AyahSearch> {
               itemCount: _results.length,
               itemBuilder: (context, index) {
                 final ayah = _results[index];
-                return _AyahResultTile(ayah: ayah, query: _lastQuery);
+                return _AyahResultTile(
+                  ayah: ayah,
+                  query: _lastQuery,
+                  onNavigate: widget.onNavigate,
+                );
               },
             ),
           ),
@@ -115,8 +121,13 @@ class _AyahSearchState extends ConsumerState<AyahSearch> {
 class _AyahResultTile extends ConsumerWidget {
   final AyahTextTableData ayah;
   final String query;
+  final VoidCallback? onNavigate;
 
-  const _AyahResultTile({required this.ayah, required this.query});
+  const _AyahResultTile({
+    required this.ayah,
+    required this.query,
+    this.onNavigate,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -127,7 +138,11 @@ class _AyahResultTile extends ConsumerWidget {
     return InkWell(
       onTap: () {
         ref.read(currentPageProvider.notifier).setPage(ayah.pageNumber);
-        context.go('/');
+        if (onNavigate != null) {
+          onNavigate!();
+        } else {
+          context.go('/');
+        }
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),

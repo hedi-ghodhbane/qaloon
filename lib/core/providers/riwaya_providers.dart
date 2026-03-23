@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../constants.dart';
@@ -12,8 +10,7 @@ final riwayaListProvider = StreamProvider<List<RiwayaTableData>>((ref) {
   return db.riwayaDao.watchAllRiwayas();
 });
 
-/// Tracks the download state: progress 0.0–1.0, or null if not downloading.
-/// 1.0 means complete.
+/// Tracks the download state: progress 0.0–1.0, succeeded/failed counts.
 final pageDownloadProvider =
     StateNotifierProvider<PageDownloadNotifier, PageDownloadState>(
   (ref) => PageDownloadNotifier(ref),
@@ -53,7 +50,6 @@ class PageDownloadState {
 class PageDownloadNotifier extends StateNotifier<PageDownloadState> {
   final Ref _ref;
   final DownloadService _service = DownloadService();
-  StreamSubscription<double>? _sub;
 
   PageDownloadNotifier(this._ref) : super(const PageDownloadState()) {
     _checkAndStart();
@@ -73,68 +69,49 @@ class PageDownloadNotifier extends StateNotifier<PageDownloadState> {
     startDownload();
   }
 
-  void startDownload() {
+  Future<void> startDownload() async {
     if (state.isDownloading) return;
     state = state.copyWith(isDownloading: true, error: null);
 
-    final stream = _service.downloadRemainingPages(
-      riwayaKey: RiwayaKeys.qaloun,
-    );
+    try {
+      await _service.downloadRemainingPages(
+        riwayaKey: RiwayaKeys.qaloun,
+        onProgress: (succeeded, failed, total) {
+          final progress = (succeeded + failed) / total;
+          final lastPage = kBundledPages + succeeded;
+          state = state.copyWith(
+            progress: progress,
+            lastDownloadedPage: lastPage,
+          );
+        },
+      );
 
-    _sub = stream.listen(
-      (progress) {
-        // Estimate which page is available based on progress.
-        // 0.0–0.7 = downloading ZIP (no pages available yet).
-        // 0.7–1.0 = extracting (pages become available).
-        final int lastPage;
-        if (progress <= 0.7) {
-          lastPage = kBundledPages; // Still downloading ZIP.
-        } else {
-          // Extraction phase: 0.7→1.0 maps to page 31→604.
-          final extractProgress = (progress - 0.7) / 0.3;
-          lastPage = kBundledPages +
-              (extractProgress * (kTotalPages - kBundledPages)).round();
-        }
-        state = state.copyWith(
-          progress: progress,
-          lastDownloadedPage: lastPage,
-        );
-      },
-      onDone: () async {
-        final actualCount =
-            await _service.downloadedPageCount(RiwayaKeys.qaloun);
-        final allDone = actualCount >= (kTotalPages - kBundledPages);
-        state = state.copyWith(
-          isDownloading: false,
-          isComplete: allDone,
-          progress: allDone ? 1.0 : actualCount / kTotalPages,
-          lastDownloadedPage: allDone ? kTotalPages : kBundledPages + actualCount,
-          error: allDone ? null : 'تم تحميل $actualCount من $kTotalPages صفحة',
-        );
-        debugPrint('[DOWNLOAD] Done — $actualCount pages extracted.');
-        if (allDone) {
-          final db = _ref.read(appDatabaseProvider);
-          db.riwayaDao.markDownloaded(kQalounRiwayaId);
-        }
-      },
-      onError: (e) {
-        debugPrint('[DOWNLOAD] Error: $e');
-        state = state.copyWith(
-          isDownloading: false,
-          error: '$e',
-        );
-      },
-    );
+      final actualCount =
+          await _service.downloadedPageCount(RiwayaKeys.qaloun);
+      final allDone = actualCount >= (kTotalPages - kBundledPages);
+      state = state.copyWith(
+        isDownloading: false,
+        isComplete: allDone,
+        progress: allDone ? 1.0 : actualCount / (kTotalPages - kBundledPages),
+        lastDownloadedPage: allDone ? kTotalPages : kBundledPages + actualCount,
+        error: allDone ? null : 'تم تحميل $actualCount صفحة فقط',
+      );
+      debugPrint('[DOWNLOAD] Done — $actualCount pages.');
+      if (allDone) {
+        final db = _ref.read(appDatabaseProvider);
+        db.riwayaDao.markDownloaded(kQalounRiwayaId);
+      }
+    } catch (e) {
+      debugPrint('[DOWNLOAD] Error: $e');
+      state = state.copyWith(
+        isDownloading: false,
+        error: '$e',
+      );
+    }
   }
 
   void retry() {
     state = state.copyWith(error: null);
     startDownload();
-  }
-
-  @override
-  void dispose() {
-    _sub?.cancel();
-    super.dispose();
   }
 }

@@ -1,34 +1,38 @@
 import 'dart:io';
 
-import 'package:dio/dio.dart';
+import 'package:background_downloader/background_downloader.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../core/constants.dart';
 
-/// Number of concurrent page downloads.
-const _kConcurrency = 10;
-
 class DownloadService {
-  final Dio _dio;
+  bool _initialized = false;
 
-  DownloadService({Dio? dio})
-      : _dio = dio ??
-            Dio(BaseOptions(
-              connectTimeout: const Duration(seconds: 15),
-              receiveTimeout: const Duration(seconds: 30),
-            ));
+  /// Initialize the background downloader. Call once at app start.
+  Future<void> init() async {
+    if (_initialized) return;
+    _initialized = true;
+    // Configure for parallel downloads.
+    await FileDownloader().configure(
+      globalConfig: [
+        (Config.holdingQueue, (null, 15, null)),
+      ],
+    );
+    debugPrint('[DOWNLOAD] Background downloader initialized');
+  }
 
   /// Returns the local directory for a riwaya's downloaded pages.
   Future<Directory> riwayaDir(String riwayaKey) async {
     final dir = await getApplicationDocumentsDirectory();
-    return Directory('${dir.path}/riwaya_$riwayaKey');
+    final rDir = Directory('${dir.path}/riwaya_$riwayaKey');
+    if (!rDir.existsSync()) rDir.createSync(recursive: true);
+    return rDir;
   }
 
   /// Whether all non-bundled pages have been downloaded.
   Future<bool> isFullyDownloaded(String riwayaKey) async {
     final dir = await riwayaDir(riwayaKey);
-    if (!dir.existsSync()) return false;
     return File('${dir.path}/$kTotalPages.png').existsSync();
   }
 
@@ -43,75 +47,71 @@ class DownloadService {
         .length;
   }
 
-  /// Downloads pages one-by-one from jsDelivr CDN with concurrency.
-  /// Yields progress 0.0–1.0. Resumable — skips already downloaded pages.
-  Stream<double> downloadRemainingPages({
+  /// Downloads remaining pages using background_downloader batch API.
+  /// Continues even when app goes to background.
+  /// [onProgress] is called with (succeeded, failed, total).
+  Future<void> downloadRemainingPages({
     required String riwayaKey,
     int startPage = kBundledPages + 1,
-  }) async* {
+    void Function(int succeeded, int failed, int total)? onProgress,
+  }) async {
+    await init();
     final dir = await riwayaDir(riwayaKey);
-    if (!dir.existsSync()) {
-      dir.createSync(recursive: true);
-    }
 
     // Check if already fully downloaded.
     if (File('${dir.path}/$kTotalPages.png').existsSync()) {
-      yield 1.0;
+      onProgress?.call(kTotalPages - kBundledPages, 0, kTotalPages - kBundledPages);
       return;
     }
 
-    // Build list of pages that still need downloading.
-    final pagesToDownload = <int>[];
+    // Build list of tasks for pages that still need downloading.
+    final tasks = <DownloadTask>[];
     for (int p = startPage; p <= kTotalPages; p++) {
       final file = File('${dir.path}/$p.png');
       if (!file.existsSync() || file.lengthSync() == 0) {
-        pagesToDownload.add(p);
+        final paddedPage = p.toString().padLeft(3, '0');
+        tasks.add(DownloadTask(
+          url: '$kQalounPagesBaseUrl/page$paddedPage.png',
+          filename: '$p.png',
+          directory: 'riwaya_$riwayaKey',
+          baseDirectory: BaseDirectory.applicationDocuments,
+          updates: Updates.status,
+          retries: 3,
+          group: 'qaloun_pages',
+        ));
       }
     }
 
-    if (pagesToDownload.isEmpty) {
-      yield 1.0;
+    if (tasks.isEmpty) {
+      onProgress?.call(kTotalPages - kBundledPages, 0, kTotalPages - kBundledPages);
       return;
     }
 
-    final totalToDownload = pagesToDownload.length;
-    var completed = 0;
+    final total = tasks.length;
+    debugPrint('[DOWNLOAD] $total pages to download via background_downloader');
 
-    debugPrint('[DOWNLOAD] $totalToDownload pages to download via jsDelivr CDN');
+    final result = await FileDownloader().downloadBatch(
+      tasks,
+      batchProgressCallback: (succeeded, failed) {
+        onProgress?.call(succeeded, failed, total);
+        if ((succeeded + failed) % 50 == 0) {
+          debugPrint('[DOWNLOAD] $succeeded/$total done, $failed failed');
+        }
+      },
+    );
 
-    // Process in batches of _kConcurrency.
-    for (var i = 0; i < pagesToDownload.length; i += _kConcurrency) {
-      final batch = pagesToDownload.skip(i).take(_kConcurrency);
-      final futures = batch.map((page) => _downloadPage(page, dir.path));
-      await Future.wait(futures);
+    final succeeded = result.numSucceeded;
+    final failed = result.numFailed;
+    debugPrint('[DOWNLOAD] Batch complete: $succeeded succeeded, $failed failed');
 
-      completed += batch.length;
-      final progress = completed / totalToDownload;
-      yield progress;
-
-      if (completed % 50 == 0 || completed == totalToDownload) {
-        debugPrint('[DOWNLOAD] $completed/$totalToDownload pages done');
-      }
-    }
-
-    yield 1.0;
-    debugPrint('[DOWNLOAD] Done — $totalToDownload pages downloaded.');
-  }
-
-  /// Download a single page image from jsDelivr CDN.
-  Future<void> _downloadPage(int pageNum, String outputDir) async {
-    final paddedPage = pageNum.toString().padLeft(3, '0');
-    final url = '$kQalounPagesBaseUrl/page$paddedPage.png';
-    final filePath = '$outputDir/$pageNum.png';
-
-    try {
-      await _dio.download(url, filePath);
-    } on DioException catch (e) {
-      debugPrint('[DOWNLOAD] Failed page $pageNum: $e');
-      // Don't rethrow — skip failed pages, they'll be retried next time.
-      final file = File(filePath);
-      if (file.existsSync() && file.lengthSync() == 0) {
-        file.deleteSync();
+    if (failed > 0) {
+      debugPrint('[DOWNLOAD] Retrying $failed failed pages...');
+      // Clean up empty files from failed downloads.
+      for (int p = startPage; p <= kTotalPages; p++) {
+        final file = File('${dir.path}/$p.png');
+        if (file.existsSync() && file.lengthSync() == 0) {
+          file.deleteSync();
+        }
       }
     }
   }
