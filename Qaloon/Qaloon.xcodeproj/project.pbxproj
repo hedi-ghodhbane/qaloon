@@ -11,26 +11,26 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		4D55534841460000000000B1 /* Mushaf.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Mushaf.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4D55534841460000000000B1 /* Qaloon.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Qaloon.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		4D55534841460000000000A4 /* Exceptions for "Mushaf" folder in "Mushaf" target */ = {
+		4D55534841460000000000A4 /* Exceptions for "Qaloon" folder in "Qaloon" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = 4D55534841460000000000B0 /* Mushaf */;
+			target = 4D55534841460000000000B0 /* Qaloon */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		4D55534841460000000000A3 /* Mushaf */ = {
+		4D55534841460000000000A3 /* Qaloon */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				4D55534841460000000000A4 /* Exceptions for "Mushaf" folder in "Mushaf" target */,
+				4D55534841460000000000A4 /* Exceptions for "Qaloon" folder in "Qaloon" target */,
 			);
-			path = Mushaf;
+			path = Qaloon;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -50,7 +50,7 @@
 		4D55534841460000000000A1 = {
 			isa = PBXGroup;
 			children = (
-				4D55534841460000000000A3 /* Mushaf */,
+				4D55534841460000000000A3 /* Qaloon */,
 				4D55534841460000000000A2 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -58,7 +58,7 @@
 		4D55534841460000000000A2 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				4D55534841460000000000B1 /* Mushaf.app */,
+				4D55534841460000000000B1 /* Qaloon.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -66,9 +66,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		4D55534841460000000000B0 /* Mushaf */ = {
+		4D55534841460000000000B0 /* Qaloon */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 4D55534841460000000000C3 /* Build configuration list for PBXNativeTarget "Mushaf" */;
+			buildConfigurationList = 4D55534841460000000000C3 /* Build configuration list for PBXNativeTarget "Qaloon" */;
 			buildPhases = (
 				4D55534841460000000000B2 /* Sources */,
 				4D55534841460000000000B3 /* Frameworks */,
@@ -79,14 +79,14 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				4D55534841460000000000A3 /* Mushaf */,
+				4D55534841460000000000A3 /* Qaloon */,
 			);
-			name = Mushaf;
+			name = Qaloon;
 			packageProductDependencies = (
 				4D55534841460000000000D1 /* WhisperKit */,
 			);
-			productName = Mushaf;
-			productReference = 4D55534841460000000000B1 /* Mushaf.app */;
+			productName = Qaloon;
+			productReference = 4D55534841460000000000B1 /* Qaloon.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -104,7 +104,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 4D55534841460000000000C0 /* Build configuration list for PBXProject "Mushaf" */;
+			buildConfigurationList = 4D55534841460000000000C0 /* Build configuration list for PBXProject "Qaloon" */;
 			developmentRegion = ar;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -122,7 +122,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				4D55534841460000000000B0 /* Mushaf */,
+				4D55534841460000000000B0 /* Qaloon */,
 			);
 		};
 /* End PBXProject section */
@@ -267,7 +267,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = Mushaf/Mushaf.entitlements;
+				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = Qaloon/Qaloon.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -276,7 +276,7 @@
 				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Mushaf/Info.plist;
+				INFOPLIST_FILE = Qaloon/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
@@ -317,7 +317,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = Mushaf/Mushaf.entitlements;
+				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = Qaloon/Qaloon.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -326,7 +326,7 @@
 				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Mushaf/Info.plist;
+				INFOPLIST_FILE = Qaloon/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
@@ -365,7 +365,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		4D55534841460000000000C0 /* Build configuration list for PBXProject "Mushaf" */ = {
+		4D55534841460000000000C0 /* Build configuration list for PBXProject "Qaloon" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				4D55534841460000000000C1 /* Debug */,
@@ -374,7 +374,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		4D55534841460000000000C3 /* Build configuration list for PBXNativeTarget "Mushaf" */ = {
+		4D55534841460000000000C3 /* Build configuration list for PBXNativeTarget "Qaloon" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				4D55534841460000000000C4 /* Debug */,

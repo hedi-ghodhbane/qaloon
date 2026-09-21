@@ -16,9 +16,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "4D55534841460000000000B0"
-               BuildableName = "Mushaf.app"
-               BlueprintName = "Mushaf"
-               ReferencedContainer = "container:Mushaf.xcodeproj">
+               BuildableName = "Qaloon.app"
+               BlueprintName = "Qaloon"
+               ReferencedContainer = "container:Qaloon.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -45,9 +45,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "4D55534841460000000000B0"
-            BuildableName = "Mushaf.app"
-            BlueprintName = "Mushaf"
-            ReferencedContainer = "container:Mushaf.xcodeproj">
+            BuildableName = "Qaloon.app"
+            BlueprintName = "Qaloon"
+            ReferencedContainer = "container:Qaloon.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -62,9 +62,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "4D55534841460000000000B0"
-            BuildableName = "Mushaf.app"
-            BlueprintName = "Mushaf"
-            ReferencedContainer = "container:Mushaf.xcodeproj">
+            BuildableName = "Qaloon.app"
+            BlueprintName = "Qaloon"
+            ReferencedContainer = "container:Qaloon.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

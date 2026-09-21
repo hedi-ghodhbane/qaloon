@@ -1,1 +1,1 @@
-../../../Mushaf/Mushaf/Services/Recite/Follower.swift
+../../../Qaloon/Qaloon/Services/Recite/Follower.swift

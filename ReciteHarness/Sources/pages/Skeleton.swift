@@ -1,1 +1,1 @@
-../../../Mushaf/Mushaf/Services/Recite/Skeleton.swift
+../../../Qaloon/Qaloon/Services/Recite/Skeleton.swift

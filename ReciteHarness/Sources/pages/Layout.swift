@@ -1,1 +1,1 @@
-../../../Mushaf/Mushaf/Model/Layout.swift
+../../../Qaloon/Qaloon/Model/Layout.swift

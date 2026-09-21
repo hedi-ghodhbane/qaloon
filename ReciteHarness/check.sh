@@ -4,7 +4,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 swift build -c release --product replay 2>&1 | tail -1
 swift build -c release --product pages 2>&1 | tail -1
-cp ../Mushaf/Mushaf/Resources/layout.json .build/release/
+cp ../Qaloon/Qaloon/Resources/layout.json .build/release/
 echo "== follower vs the Python prototype, same hypotheses (expect 0, or a word or two half a second apart)"
 for s in husary-001 huthaifi-001 huthaifi-067 husary-078 husary-067; do
   printf '%-14s' "$s"; .build/release/replay "Fixtures/$s" | head -1

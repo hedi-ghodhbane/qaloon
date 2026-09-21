@@ -1,0 +1,15 @@
+# The recitation model (143 MB of Core ML): built by scripts/build-recite-model.sh
+Qaloon/Qaloon/Resources/ReciteModel/
+.recite-model-build/
+
+# Xcode
+xcuserdata/
+*.xcuserstate
+DerivedData/
+.build/
+.DS_Store
+# Left behind by sandboxed xcodebuild / swift runs
+TemporaryDirectory.*/
+swift-generated-sources/
+*.swiftpm.lock
+_Users_*.lock

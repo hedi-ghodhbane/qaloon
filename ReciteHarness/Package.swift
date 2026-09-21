@@ -1,7 +1,7 @@
 // swift-tools-version:5.9
 import PackageDescription
 
-// Headless checks of the Mushaf app's recitation follower, on recordings instead of a
+// Headless checks of the Qaloon app's recitation follower, on recordings instead of a
 // microphone. The follower's sources are links into the app: what is tested is what ships.
 //   replay  the follower over saved hypotheses; must time the words as prototype/follow.py did
 //   pages   the reader view's hide-mode flow (covers, page turns, a start mid-page)
