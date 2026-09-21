@@ -10,7 +10,7 @@ struct ToolsSheet: View {
     @Binding var hideMode: Bool
     @Binding var progressAyah: Int
     @Binding var keepMarkers: Bool
-    @Binding var hideWords: Bool
+    @Binding var tapWord: Bool
     @Binding var keepOpening: Bool
     let onHideAll: () -> Void
     let onGoTo: (Int) -> Void
@@ -171,22 +171,22 @@ struct ToolsSheet: View {
     private var memorising: some View {
         Section("الحفظ") {
             Toggle("وضع الإخفاء", isOn: $hideMode)
-            Picker("ما يُخفى", selection: $hideWords) {
-                Text("آية آية").tag(false)
-                Text("كلمة كلمة").tag(true)
+            Picker("اللمس يُظهر", selection: $tapWord) {
+                Text("الكلمة").tag(true)
+                Text("الآية كاملة").tag(false)
             }
             .pickerStyle(.segmented)
-            if hideWords {
-                Toggle("إبقاء أول كل آية ظاهرًا", isOn: $keepOpening)
-            }
+            Toggle("إبقاء أول كل آية ظاهرًا", isOn: $keepOpening)
             Toggle("إبقاء أرقام الآيات ظاهرة عند الإخفاء", isOn: $keepMarkers)
             Toggle("الانتقال للصفحة التالية تلقائيًا بعد إظهار آخر الصفحة", isOn: $autoAdvance)
             if hideMode {
                 Button("أخفِ الكل") { onHideAll() }
             }
-            Text(hideWords
-                 ? "في وضع الإخفاء المسْ الكلمة لإظهارها، أو اضغط «التالي» لإظهار الكلمات بالترتيب. أول كل آية يبقى ظاهرًا لتتذكّر منه بقيّتها."
-                 : "في وضع الإخفاء المسْ الآية لإظهارها، أو اضغط «التالي» لإظهار الآيات بالترتيب.")
+            Text("في وضع الإخفاء زرّ «كلمة» يُظهر الكلمة التالية وزرّ «آية» يُظهر بقيّة الآية التالية. "
+                 + (tapWord
+                    ? "المسْ الكلمة لإظهارها، والمسْ علامة نهاية الآية ۝ لإظهار الآية كاملة."
+                    : "المسْ الآية لإظهارها كاملة.")
+                 + " اللمس مرة أخرى يعيد الإخفاء.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
         }

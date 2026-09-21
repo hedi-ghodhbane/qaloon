@@ -26,6 +26,11 @@ struct LayoutWord: Hashable {
 
     /// Stable key for "this word has been uncovered" (an ayah has at most 130 words).
     var key: Int { ayahId * 1000 + index }
+
+    /// Whether hide mode covers this word: never the star, and not the opening word when it is the prompt.
+    func isHideable(keepOpening: Bool) -> Bool {
+        kind == .word || (kind == .opening && !keepOpening)
+    }
 }
 
 struct LayoutAyah: Identifiable, Hashable {
@@ -61,9 +66,15 @@ struct PageLayout {
         }
     }
 
-    /// Words that word-hiding covers: never the star, and not the opening word when it is the prompt.
+    /// Words that hide mode covers, in reading order.
     func hideableWords(keepOpening: Bool) -> [LayoutWord] {
-        words.filter { $0.kind == .word || ($0.kind == .opening && !keepOpening) }
+        words.filter { $0.isHideable(keepOpening: keepOpening) }
+    }
+
+    /// The ayah whose end-of-ayah sign ۝ contains `point`: in hide mode the sign is the handle
+    /// for the whole ayah, whatever a tap on its words does.
+    func ayah(markerAt point: CGPoint, padding: CGFloat) -> LayoutAyah? {
+        ayahs.first { $0.marker?.insetBy(dx: -padding, dy: -padding).contains(point) == true }
     }
 
     /// The word whose box contains `point` (padded vertically only: the boxes already tile the line).

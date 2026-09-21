@@ -5,19 +5,19 @@ import SwiftUI
 struct PageCell: View {
     let page: Int
     let hideMode: Bool
-    /// Ayah ids the reader has uncovered (hide mode).
-    let revealed: Set<Int>
     let selected: Int?
     let active: Int?
     /// Saved progress ayah (outlined in gold when it is on this page).
     let progress: Int?
     /// Leave the end-of-ayah signs ۝ visible while the text is hidden.
     let keepMarkers: Bool
-    /// Hide word by word instead of ayah by ayah.
-    var hideWords = false
-    /// Word hiding leaves each ayah's opening word visible, as the prompt.
+    /// Hide mode: a tap on the text lifts one word (true) or the whole ayah (false).
+    /// A tap on the ayah sign ۝ always takes the whole ayah.
+    var tapWord = true
+    /// Hide mode leaves each ayah's opening word visible, as the prompt.
     var keepOpening = true
-    /// Word keys the reader has uncovered (word hiding).
+    /// Word keys the reader has uncovered (hide mode). Covers are per word; an ayah is
+    /// uncovered by uncovering its words.
     var revealedWords: Set<Int> = []
     let onTap: (Int) -> Void
     var onTapWord: (LayoutWord) -> Void = { _ in }
@@ -27,12 +27,8 @@ struct PageCell: View {
 
     private var layout: PageLayout { LayoutStore.shared.layout(for: page) }
 
-    private var hidden: Set<Int> {
-        hideMode && !hideWords ? Set(layout.ayahs.map(\.id)).subtracting(revealed) : []
-    }
-
     private var hiddenWords: [LayoutWord] {
-        guard hideMode, hideWords else { return [] }
+        guard hideMode else { return [] }
         return layout.hideableWords(keepOpening: keepOpening).filter { !revealedWords.contains($0.key) }
     }
 
@@ -67,7 +63,7 @@ struct PageCell: View {
                     }
                     .frame(width: geo.size.width, height: geo.size.height)
                 }
-                PageOverlay(layout: layout, hidden: hidden, hiddenWords: hiddenWords,
+                PageOverlay(layout: layout, hiddenWords: hiddenWords,
                             selected: selected, active: active,
                             progress: progress, keepMarkers: keepMarkers,
                             scale: scale, origin: frame.origin)
@@ -84,8 +80,16 @@ struct PageCell: View {
                 guard scale > 0 else { return }
                 let point = CGPoint(x: (value.location.x - frame.minX) / scale,
                                     y: (value.location.y - frame.minY) / scale)
-                if hideMode, hideWords {
-                    if let word = layout.word(at: point, padY: 10) { onTapWord(word) }
+                if hideMode, let signed = layout.ayah(markerAt: point, padding: 0) {
+                    onTap(signed.id)
+                } else if hideMode, tapWord {
+                    // A word wins over the padding round a sign: a whole ayah lifted by mistake
+                    // spoils the test, a word lifted by mistake barely does.
+                    if let word = layout.word(at: point, padY: 10) {
+                        onTapWord(word)
+                    } else if let signed = layout.ayah(markerAt: point, padding: 6) {
+                        onTap(signed.id)
+                    }
                 } else if let hit = layout.ayah(at: point, padding: CGSize(width: 4, height: 10)) {
                     onTap(hit.id)
                 }
@@ -117,8 +121,7 @@ struct PageCell: View {
 /// Highlights and covers drawn over the page image in one Canvas pass.
 struct PageOverlay: View {
     let layout: PageLayout
-    let hidden: Set<Int>
-    /// Words to cover (word hiding); empty when hiding by ayah.
+    /// Words to cover (hide mode).
     var hiddenWords: [LayoutWord] = []
     let selected: Int?
     let active: Int?
@@ -160,26 +163,13 @@ struct PageOverlay: View {
             var hiddenSpans: [Int: [ClosedRange<CGFloat>]] = [:]
 
             for a in layout.ayahs {
-                let isHidden = hidden.contains(a.id)
                 let isProgress = a.id == progress
                 let tint: Color? = a.id == active ? Theme.playing : (a.id == selected ? Theme.selected : nil)
-                guard isHidden || isProgress || tint != nil else { continue }
+                guard isProgress || tint != nil else { continue }
                 for s in a.segments {
-                    let r = display(band(s), padX: padX, padY: padY)
                     if let tint {
                         context.fill(Path(roundedRect: display(band(s), padX: padX, padY: 6), cornerRadius: 6 * scale),
                                      with: .color(tint))
-                    }
-                    if isHidden {
-                        // The page PNGs are transparent: the "paper" is the cell background, so a
-                        // cover in the same colour is invisible. Holes keep the ayah signs visible.
-                        // Only the part of a sign inside this cover is cut out: with even-odd
-                        // filling, any hole area outside the cover would be painted instead.
-                        var cover = Path(r)
-                        let holes = markers.filter { $0.intersects(r) }
-                        for hole in holes { cover.addRect(hole.intersection(r)) }
-                        context.fill(cover, with: .color(Theme.parchment), style: FillStyle(eoFill: !holes.isEmpty))
-                        hiddenSpans[s.line, default: []].append(s.rect.minX...s.rect.maxX)
                     }
                     if isProgress {
                         context.stroke(Path(roundedRect: display(band(s), padX: padX, padY: 6).insetBy(dx: 1, dy: 1),
@@ -204,17 +194,34 @@ struct PageOverlay: View {
                 }
             }
 
-            // Word covers. The boxes tile the line, so a cover takes the word's own width
-            // (a hair more, against a seam between neighbours) and the line's full height.
-            for w in hiddenWords {
-                let box = lineBoxes[w.line] ?? w.rect
-                let r = display(CGRect(x: w.rect.minX, y: box.minY, width: w.rect.width, height: box.height),
-                                padX: 0.75, padY: padY)
-                var cover = Path(r)
+            // Covers, one per hidden word; a hidden ayah is simply all of its words. The page PNGs
+            // are transparent: the "paper" is the cell background, so a cover in the same colour is
+            // invisible. The boxes tile the line, so a cover takes the word's own width (a hair
+            // more, against a seam between neighbours; the usual padding at the ends of the line)
+            // and the line's full height. Holes keep the ayah signs visible. Only the part of a
+            // sign inside a cover is cut out: with even-odd filling, any hole area outside the
+            // cover would be painted instead.
+            func cover(_ rect: CGRect, line: Int) {
+                let box = lineBoxes[line] ?? rect
+                let x0 = rect.minX - (rect.minX <= box.minX + 1 ? padX : 0.75)
+                let x1 = rect.maxX + (rect.maxX >= box.maxX - 1 ? padX : 0.75)
+                let r = display(CGRect(x: x0, y: box.minY, width: x1 - x0, height: box.height), padY: padY)
+                var path = Path(r)
                 let holes = markers.filter { $0.intersects(r) }
-                for hole in holes { cover.addRect(hole.intersection(r)) }
-                context.fill(cover, with: .color(Theme.parchment), style: FillStyle(eoFill: !holes.isEmpty))
-                hiddenSpans[w.line, default: []].append(w.rect.minX...w.rect.maxX)
+                for hole in holes { path.addRect(hole.intersection(r)) }
+                context.fill(path, with: .color(Theme.parchment), style: FillStyle(eoFill: !holes.isEmpty))
+                hiddenSpans[line, default: []].append(rect.minX...rect.maxX)
+            }
+            for w in hiddenWords { cover(w.rect, line: w.line) }
+            // With the signs hidden too, an ayah's sign goes while any of its words is covered.
+            if !keepMarkers {
+                let covered = Set(hiddenWords.map(\.ayahId))
+                for a in layout.ayahs where covered.contains(a.id) {
+                    guard let sign = a.marker,
+                          let line = lineBoxes.first(where: { $0.value.minY <= sign.midY && sign.midY <= $0.value.maxY })?.key
+                    else { continue }
+                    cover(sign, line: line)
+                }
             }
 
             // One faint dashed rule per line, a little under the line's text, spanning the
