@@ -7,6 +7,27 @@ struct Segment: Hashable {
     let rect: CGRect
 }
 
+/// One word of an ayah on a page. Boxes tile the line: neighbours share an edge.
+struct LayoutWord: Hashable {
+    enum Kind: Int {
+        case word = 0
+        /// The rub' al-hizb star ۞: a word row, but nothing to recite — never covered.
+        case star = 1
+        /// The ayah's opening word: the prompt word-hiding can leave visible.
+        case opening = 2
+    }
+
+    let ayahId: Int
+    /// 1-based position inside the ayah.
+    let index: Int
+    let line: Int
+    let rect: CGRect
+    let kind: Kind
+
+    /// Stable key for "this word has been uncovered" (an ayah has at most 130 words).
+    var key: Int { ayahId * 1000 + index }
+}
+
 struct LayoutAyah: Identifiable, Hashable {
     let id: Int
     let surah: Int
@@ -15,6 +36,8 @@ struct LayoutAyah: Identifiable, Hashable {
     let segments: [Segment]
     /// Box of the end-of-ayah sign ۝ when it is on this page.
     let marker: CGRect?
+    /// Words on THIS page, in order.
+    let words: [LayoutWord]
 }
 
 struct PageLayout {
@@ -30,6 +53,25 @@ struct PageLayout {
             }
         }
     }
+
+    /// Every word on the page in reading order: down the lines, right to left along each.
+    var words: [LayoutWord] {
+        ayahs.flatMap(\.words).sorted {
+            $0.line != $1.line ? $0.line < $1.line : $0.rect.maxX > $1.rect.maxX
+        }
+    }
+
+    /// Words that word-hiding covers: never the star, and not the opening word when it is the prompt.
+    func hideableWords(keepOpening: Bool) -> [LayoutWord] {
+        words.filter { $0.kind == .word || ($0.kind == .opening && !keepOpening) }
+    }
+
+    /// The word whose box contains `point` (padded vertically only: the boxes already tile the line).
+    func word(at point: CGPoint, padY: CGFloat) -> LayoutWord? {
+        ayahs.lazy.flatMap(\.words).first {
+            $0.rect.insetBy(dx: 0, dy: -padY).contains(point)
+        }
+    }
 }
 
 /// Ayah boxes for all 604 pages, from the bundled `layout.json`
@@ -43,13 +85,14 @@ final class LayoutStore {
         let pages: [[Row]]
     }
 
-    /// `[ayahId, surah, ayah, [[line, x1, y1, x2, y2], …], [x1, y1, x2, y2] | null]`
+    /// `[ayahId, surah, ayah, [[line, x1, y1, x2, y2], …], [x1, y1, x2, y2] | null, [[w, line, x1, y1, x2, y2, kind], …]]`
     private struct Row: Decodable {
         let id: Int
         let surah: Int
         let ayah: Int
         let segments: [[Double]]
         let marker: [Double]?
+        let words: [[Double]]
 
         init(from decoder: Decoder) throws {
             var c = try decoder.unkeyedContainer()
@@ -58,6 +101,7 @@ final class LayoutStore {
             ayah = try c.decode(Int.self)
             segments = try c.decode([[Double]].self)
             marker = c.isAtEnd ? nil : try c.decode([Double]?.self)
+            words = c.isAtEnd ? [] : try c.decode([[Double]].self)
         }
     }
 
@@ -73,11 +117,17 @@ final class LayoutStore {
                 let marker: CGRect? = r.marker.flatMap { m in
                     m.count >= 4 ? CGRect(x: m[0], y: m[1], width: m[2] - m[0], height: m[3] - m[1]) : nil
                 }
+                let words: [LayoutWord] = r.words.compactMap { v in
+                    guard v.count >= 7 else { return nil }
+                    return LayoutWord(ayahId: r.id, index: Int(v[0]), line: Int(v[1]),
+                                      rect: CGRect(x: v[2], y: v[3], width: v[4] - v[2], height: v[5] - v[3]),
+                                      kind: LayoutWord.Kind(rawValue: Int(v[6])) ?? .word)
+                }
                 return LayoutAyah(id: r.id, surah: r.surah, ayah: r.ayah, segments: r.segments.compactMap { v in
                     guard v.count >= 5 else { return nil }
                     return Segment(line: Int(v[0]),
                                    rect: CGRect(x: v[1], y: v[2], width: v[3] - v[1], height: v[4] - v[2]))
-                }, marker: marker)
+                }, marker: marker, words: words)
             })
         }
     }

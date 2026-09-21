@@ -13,7 +13,14 @@ struct PageCell: View {
     let progress: Int?
     /// Leave the end-of-ayah signs ۝ visible while the text is hidden.
     let keepMarkers: Bool
+    /// Hide word by word instead of ayah by ayah.
+    var hideWords = false
+    /// Word hiding leaves each ayah's opening word visible, as the prompt.
+    var keepOpening = true
+    /// Word keys the reader has uncovered (word hiding).
+    var revealedWords: Set<Int> = []
     let onTap: (Int) -> Void
+    var onTapWord: (LayoutWord) -> Void = { _ in }
 
     @State private var image: CGImage?
     @State private var failed = false
@@ -21,7 +28,12 @@ struct PageCell: View {
     private var layout: PageLayout { LayoutStore.shared.layout(for: page) }
 
     private var hidden: Set<Int> {
-        hideMode ? Set(layout.ayahs.map(\.id)).subtracting(revealed) : []
+        hideMode && !hideWords ? Set(layout.ayahs.map(\.id)).subtracting(revealed) : []
+    }
+
+    private var hiddenWords: [LayoutWord] {
+        guard hideMode, hideWords else { return [] }
+        return layout.hideableWords(keepOpening: keepOpening).filter { !revealedWords.contains($0.key) }
     }
 
     var body: some View {
@@ -55,7 +67,8 @@ struct PageCell: View {
                     }
                     .frame(width: geo.size.width, height: geo.size.height)
                 }
-                PageOverlay(layout: layout, hidden: hidden, selected: selected, active: active,
+                PageOverlay(layout: layout, hidden: hidden, hiddenWords: hiddenWords,
+                            selected: selected, active: active,
                             progress: progress, keepMarkers: keepMarkers,
                             scale: scale, origin: frame.origin)
                     .allowsHitTesting(false)
@@ -71,7 +84,9 @@ struct PageCell: View {
                 guard scale > 0 else { return }
                 let point = CGPoint(x: (value.location.x - frame.minX) / scale,
                                     y: (value.location.y - frame.minY) / scale)
-                if let hit = layout.ayah(at: point, padding: CGSize(width: 4, height: 10)) {
+                if hideMode, hideWords {
+                    if let word = layout.word(at: point, padY: 10) { onTapWord(word) }
+                } else if let hit = layout.ayah(at: point, padding: CGSize(width: 4, height: 10)) {
                     onTap(hit.id)
                 }
             })
@@ -103,6 +118,8 @@ struct PageCell: View {
 struct PageOverlay: View {
     let layout: PageLayout
     let hidden: Set<Int>
+    /// Words to cover (word hiding); empty when hiding by ayah.
+    var hiddenWords: [LayoutWord] = []
     let selected: Int?
     let active: Int?
     let progress: Int?
@@ -185,6 +202,19 @@ struct PageOverlay: View {
                     mark.closeSubpath()
                     context.fill(mark, with: .color(Theme.gold))
                 }
+            }
+
+            // Word covers. The boxes tile the line, so a cover takes the word's own width
+            // (a hair more, against a seam between neighbours) and the line's full height.
+            for w in hiddenWords {
+                let box = lineBoxes[w.line] ?? w.rect
+                let r = display(CGRect(x: w.rect.minX, y: box.minY, width: w.rect.width, height: box.height),
+                                padX: 0.75, padY: padY)
+                var cover = Path(r)
+                let holes = markers.filter { $0.intersects(r) }
+                for hole in holes { cover.addRect(hole.intersection(r)) }
+                context.fill(cover, with: .color(Theme.parchment), style: FillStyle(eoFill: !holes.isEmpty))
+                hiddenSpans[w.line, default: []].append(w.rect.minX...w.rect.maxX)
             }
 
             // One faint dashed rule per line, a little under the line's text, spanning the

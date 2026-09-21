@@ -10,6 +10,8 @@ struct ToolsSheet: View {
     @Binding var hideMode: Bool
     @Binding var progressAyah: Int
     @Binding var keepMarkers: Bool
+    @Binding var hideWords: Bool
+    @Binding var keepOpening: Bool
     let onHideAll: () -> Void
     let onGoTo: (Int) -> Void
 
@@ -168,13 +170,23 @@ struct ToolsSheet: View {
 
     private var memorising: some View {
         Section("الحفظ") {
-            Toggle("إخفاء الآيات", isOn: $hideMode)
+            Toggle("وضع الإخفاء", isOn: $hideMode)
+            Picker("ما يُخفى", selection: $hideWords) {
+                Text("آية آية").tag(false)
+                Text("كلمة كلمة").tag(true)
+            }
+            .pickerStyle(.segmented)
+            if hideWords {
+                Toggle("إبقاء أول كل آية ظاهرًا", isOn: $keepOpening)
+            }
             Toggle("إبقاء أرقام الآيات ظاهرة عند الإخفاء", isOn: $keepMarkers)
-            Toggle("الانتقال للصفحة التالية تلقائيًا بعد إظهار آخر آية", isOn: $autoAdvance)
+            Toggle("الانتقال للصفحة التالية تلقائيًا بعد إظهار آخر الصفحة", isOn: $autoAdvance)
             if hideMode {
                 Button("أخفِ الكل") { onHideAll() }
             }
-            Text("في وضع الإخفاء المسْ الآية لإظهارها، أو اضغط «التالي» لإظهار الآيات بالترتيب.")
+            Text(hideWords
+                 ? "في وضع الإخفاء المسْ الكلمة لإظهارها، أو اضغط «التالي» لإظهار الكلمات بالترتيب. أول كل آية يبقى ظاهرًا لتتذكّر منه بقيّتها."
+                 : "في وضع الإخفاء المسْ الآية لإظهارها، أو اضغط «التالي» لإظهار الآيات بالترتيب.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
         }

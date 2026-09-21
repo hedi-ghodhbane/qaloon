@@ -14,9 +14,14 @@ struct ReaderView: View {
     @AppStorage("progressAyah") private var progressAyah = 0
     /// Hide mode leaves the end-of-ayah signs visible.
     @AppStorage("keepMarkers") private var keepMarkers = true
+    /// Hide word by word rather than ayah by ayah.
+    @AppStorage("hideWords") private var hideWords = false
+    /// Word hiding leaves each ayah's opening word visible: the prompt to recite the rest from.
+    @AppStorage("keepOpening") private var keepOpening = true
 
     @State private var page: Int?
     @State private var revealed: Set<Int> = []
+    @State private var revealedWords: Set<Int> = []
     @State private var selectedAyah: Int?
     @State private var sheet: Sheet?
     @FocusState private var focused: Bool
@@ -41,9 +46,17 @@ struct ReaderView: View {
 
     private var current: Int { page ?? quran.clampPage(savedPage) }
     private var layout: PageLayout { LayoutStore.shared.layout(for: current) }
-    private var remaining: Int {
-        hideMode ? layout.ayahs.reduce(0) { $0 + (revealed.contains($1.id) ? 0 : 1) } : 0
+    /// Words still covered on this page, in reading order (word hiding).
+    private var coveredWords: [LayoutWord] {
+        layout.hideableWords(keepOpening: keepOpening).filter { !revealedWords.contains($0.key) }
     }
+    private var remaining: Int {
+        guard hideMode else { return 0 }
+        if hideWords { return coveredWords.count }
+        return layout.ayahs.reduce(0) { $0 + (revealed.contains($1.id) ? 0 : 1) }
+    }
+    /// How many covers the reader has lifted (drives the auto page-turn).
+    private var liftedCount: Int { hideWords ? revealedWords.count : revealed.count }
     private var reciter: Reciter { Reciters.byId(reciterId) }
 
     var body: some View {
@@ -61,7 +74,8 @@ struct ReaderView: View {
                 ToolsSheet(page: current, selectedAyah: selectedAyah, reciterId: $reciterId,
                            repeatCount: $repeatCount, autoAdvance: $autoAdvance, hideMode: $hideMode,
                            progressAyah: $progressAyah, keepMarkers: $keepMarkers,
-                           onHideAll: { revealed = [] },
+                           hideWords: $hideWords, keepOpening: $keepOpening,
+                           onHideAll: { hideAll() },
                            onGoTo: { goTo($0) })
             }
         }
@@ -74,10 +88,13 @@ struct ReaderView: View {
         .onChange(of: page) { _, newValue in
             guard let newValue else { return }
             savedPage = newValue
-            revealed = []
+            hideAll()
             selectedAyah = nil
             images.prefetch(around: newValue)
         }
+        // Changing what is hidden starts the page covered again.
+        .onChange(of: hideWords) { _, _ in hideAll() }
+        .onChange(of: keepOpening) { _, _ in hideAll() }
         // A page adopted from another device (sync writes `lastPage`) moves the reader.
         .onChange(of: savedPage) { _, newValue in
             let target = quran.clampPage(newValue)
@@ -90,8 +107,8 @@ struct ReaderView: View {
         // Hide mode: once every cover on the page is lifted, continue on the
         // next page (hidden again) after a short pause. Any change cancels.
         .task(id: AutoTurnKey(page: current, hide: hideMode, remaining: remaining,
-                              revealedCount: revealed.count, enabled: autoAdvance)) {
-            guard autoAdvance, hideMode, remaining == 0, !revealed.isEmpty,
+                              revealedCount: liftedCount, enabled: autoAdvance)) {
+            guard autoAdvance, hideMode, remaining == 0, liftedCount > 0,
                   current < quran.pageCount else { return }
             try? await Task.sleep(for: .milliseconds(900))
             guard !Task.isCancelled else { return }
@@ -147,7 +164,11 @@ struct ReaderView: View {
                              active: player.activeAyah,
                              progress: progressAyah > 0 ? progressAyah : nil,
                              keepMarkers: keepMarkers,
-                             onTap: { id in tap(id) })
+                             hideWords: hideWords,
+                             keepOpening: keepOpening,
+                             revealedWords: p == current ? revealedWords : [],
+                             onTap: { id in tap(id) },
+                             onTapWord: { word in tap(word) })
                         .containerRelativeFrame(.horizontal)
                         .id(p)
                 }
@@ -165,11 +186,15 @@ struct ReaderView: View {
                       system: hideMode ? "eye" : "eye.slash",
                       active: hideMode) {
                 hideMode.toggle()
-                revealed = []
+                hideAll()
             }
             if hideMode {
                 BarButton(title: remaining > 0 ? "التالي (\(Quran.arabicDigits(remaining)))" : "الصفحة التالية",
                           system: "arrow.forward.circle", active: false) { revealNext() }
+                // What a cover hides: a whole ayah, or one word.
+                BarButton(title: hideWords ? "كلمات" : "آيات",
+                          system: hideWords ? "textformat.abc" : "text.justify",
+                          active: false) { hideWords.toggle() }
             }
             BarButton(title: player.isBusy ? "إيقاف" : (selectedAyah != nil ? "الآية" : "استمع"),
                       system: player.isBusy ? "stop.fill" : "play.fill",
@@ -216,8 +241,21 @@ struct ReaderView: View {
         }
     }
 
+    /// A tapped word: lift its cover, or put it back. The star and a kept opening word have none.
+    private func tap(_ word: LayoutWord) {
+        guard word.kind == .word || (word.kind == .opening && !keepOpening) else { return }
+        if revealedWords.contains(word.key) { revealedWords.remove(word.key) } else { revealedWords.insert(word.key) }
+    }
+
+    private func hideAll() {
+        revealed = []
+        revealedWords = []
+    }
+
     private func revealNext() {
-        if let next = layout.ayahs.first(where: { !revealed.contains($0.id) }) {
+        if hideWords {
+            if let next = coveredWords.first { revealedWords.insert(next.key) } else { turn(1) }
+        } else if let next = layout.ayahs.first(where: { !revealed.contains($0.id) }) {
             revealed.insert(next.id)
         } else {
             turn(1)
