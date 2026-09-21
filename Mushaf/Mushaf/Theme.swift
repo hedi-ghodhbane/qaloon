@@ -16,4 +16,8 @@ enum Theme {
     static let playing = gold.opacity(0.32)
     /// Underline marking a hidden ayah (the cover itself is `parchment`, invisible over the transparent page PNGs).
     static let coverLine = gold.opacity(0.5)
+    /// Outline of the covered word a reciting reader is stopped at.
+    static let stopped = Color(red: 176 / 255, green: 58 / 255, blue: 46 / 255).opacity(0.85)
+    /// The day grid of the stats, from no recitation to the busiest day.
+    static let heat: [Color] = [ink.opacity(0.07), green.opacity(0.25), green.opacity(0.45), green.opacity(0.7), green]
 }

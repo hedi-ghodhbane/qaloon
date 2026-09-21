@@ -172,6 +172,7 @@ struct ReaderView: View {
                              tapWord: tapWord,
                              keepOpening: keepOpening,
                              revealedWords: p == current ? revealedWords : [],
+                             stopped: p == current ? recite.stoppedAt?.key : nil,
                              onTap: { id in tap(id) },
                              onTapWord: { word in tap(word) })
                         .containerRelativeFrame(.horizontal)
@@ -335,18 +336,21 @@ struct ReaderView: View {
         if recite.isOn {
             recite.stop()
         } else {
-            recite.start(page: layout) { words in
-                revealedWords.formUnion(words.map(\.key))
-            } onPageEnd: {
-                // Begun mid-page, the top of it is still covered and the page would not turn by
-                // itself; the recitation has reached its end all the same.
-                guard autoAdvance, remaining > 0, current < quran.pageCount else { return }
-                let from = current
-                Task {
-                    try? await Task.sleep(for: .milliseconds(900))
-                    if current == from, recite.isOn { turn(1) }
-                }
-            }
+            recite.start(page: layout, handlers: .init(
+                lift: { words in revealedWords.formUnion(words.map(\.key)) },
+                pageEnd: {
+                    // Begun mid-page by hand, the top of it may still be covered and the page
+                    // would not turn by itself; the recitation has reached its end all the same.
+                    guard autoAdvance, remaining > 0, current < quran.pageCount else { return }
+                    let from = current
+                    Task {
+                        try? await Task.sleep(for: .milliseconds(900))
+                        if current == from, recite.isOn { turn(1) }
+                    }
+                },
+                // The reader began a surah that is not on screen: go to it, covered.
+                go: { target in withAnimation(.easeInOut(duration: 0.25)) { page = quran.clampPage(target) } }
+            ))
         }
     }
 

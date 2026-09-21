@@ -20,6 +20,8 @@ final class ReciteSession {
     private(set) var status: Status = .idle
     /// What the model last made of the sound: shown small, so a reader can tell it is hearing them.
     private(set) var heard = ""
+    /// The word a reader is stopped at: they go on speaking, and it is not what they say.
+    private(set) var stoppedAt: LayoutWord?
 
     var isOn: Bool { status == .listening || status == .loading }
 
@@ -43,11 +45,23 @@ final class ReciteSession {
     /// Seconds between passes, and of sound given to each.
     private static let hop = 0.5, window = 10.0
 
+    /// What the reader view does for the listener.
+    struct Handlers {
+        /// Lift these words' covers.
+        var lift: ([LayoutWord]) -> Void
+        /// The page's last word has been recited.
+        var pageEnd: () -> Void
+        /// The reader is reciting another page: show it.
+        var go: (Int) -> Void
+    }
+
     private var kit: WhisperKit?
-    private var follower = Follower(words: [])
-    private var targets: [LayoutWord?] = []
-    private var onHeard: (([LayoutWord]) -> Void)?
-    private var onPageEnd: (() -> Void)?
+    private var locator: Locator?
+    private var tracker = Tracker(page: 1, words: [])
+    private var said: [(text: String, word: LayoutWord?)] = []
+    private var handlers: Handlers?
+    /// Where to take the reader up once the page the locator found them on is shown.
+    private var arriving: Locator.Place?
     private var pageEnded = false
     private var loop: Task<Void, Never>?
 
@@ -56,12 +70,10 @@ final class ReciteSession {
                                           detectLanguage: false, skipSpecialTokens: true,
                                           withoutTimestamps: true, wordTimestamps: false)
 
-    /// Starts listening and follows `page`; `onHeard` gets the words each pass newly covers,
-    /// `onPageEnd` is called once when the page's last word has been recited.
-    func start(page: PageLayout, onHeard: @escaping ([LayoutWord]) -> Void, onPageEnd: @escaping () -> Void) {
+    /// Starts listening, and follows `page` until the reader is heard to be elsewhere.
+    func start(page: PageLayout, handlers: Handlers) {
         guard !isOn else { return }
-        self.onHeard = onHeard
-        self.onPageEnd = onPageEnd
+        self.handlers = handlers
         follow(page)
         status = .loading
         loop = Task { [weak self] in await self?.run() }
@@ -72,22 +84,42 @@ final class ReciteSession {
         loop = nil
         kit?.audioProcessor.stopRecording()
         heard = ""
+        stoppedAt = nil
+        arriving = nil
         status = .idle
+        ReciteStats.shared.flush()
     }
 
     /// A new page, or the same one covered again: the text to follow starts over. The sound
     /// already heard is kept — a reader does not pause at a page turn.
     func follow(_ page: PageLayout) {
-        let said = page.recitation
-        targets = said.map(\.word)
-        follower = Follower(words: said.map(\.text))
+        said = page.recitation
+        tracker = Tracker(page: page.page, words: said.map(\.text),
+                          neutral: Set(said.indices.filter { said[$0].word == nil }))
         pageEnded = false
+        stoppedAt = nil
+        if let place = arriving, place.page == page.page { begin(at: place) }
+        arriving = nil
     }
 
     /// The reader lifted this word's cover by hand: the recitation goes on from after it.
     func skip(past word: LayoutWord) {
-        guard let k = targets.firstIndex(where: { $0?.key == word.key }), k >= follower.cursor else { return }
-        follower.move(to: k + 1)
+        guard let k = said.firstIndex(where: { $0.word?.key == word.key }), k >= tracker.cursor else { return }
+        tracker.begin(at: k + 1, held: false)
+        stoppedAt = nil
+    }
+
+    /// Takes the reader up where the locator heard them. What comes before on the page is
+    /// shown — it is where they chose to start, not something they left out — and the words
+    /// they were found by count as recited.
+    private func begin(at place: Locator.Place) {
+        tracker.begin(at: place.index, held: true)
+        handlers?.lift(said[..<place.index].compactMap(\.word))
+        recited(max(0, place.index - place.run)..<place.index)
+    }
+
+    private func recited(_ range: Range<Int>) {
+        ReciteStats.shared.record(words: said[range].map(\.text), pageWords: said.count)
     }
 
     private func run() async {
@@ -102,6 +134,12 @@ final class ReciteSession {
                 kit = try await WhisperKit(WhisperKitConfig(modelFolder: folder.path, tokenizerFolder: folder,
                                                             verbose: false, logLevel: .error,
                                                             prewarm: false, load: true, download: false))
+            }
+            if locator == nil {
+                // Every word of the mushaf, once: a second or so, off the main thread.
+                locator = await Task.detached(priority: .userInitiated) {
+                    Locator(pages: (1...Quran.shared.pageCount).map { LayoutStore.shared.layout(for: $0).recitation.map(\.text) })
+                }.value
             }
             guard let kit, !Task.isCancelled else { return }
             AyahPlayer.shared.stop()
@@ -132,7 +170,10 @@ final class ReciteSession {
             let tail = Self.loudness(sound.suffix(Self.rate * 35 / 100))
             level = max(level * 0.995, tail)
             let quiet = tail < max(0.15 * level, 0.002)
-            if !quiet { lastVoice = Date() }
+            if !quiet {
+                lastVoice = Date()
+                ReciteStats.shared.record(seconds: Self.hop)
+            }
             guard let lastVoice, Date().timeIntervalSince(lastVoice) < Self.window else { continue }
             if quiet, settled { continue }
             settled = quiet
@@ -141,12 +182,27 @@ final class ReciteSession {
             let text = results.map(\.text).joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines)
             guard !Task.isCancelled else { return }
             heard = text
-            let moved = follower.feed(text, final: quiet)
-            let words = moved.compactMap { targets[$0] }
-            if !words.isEmpty { onHeard?(words) }
-            if follower.isDone, !pageEnded {
+            switch tracker.hear(text, final: quiet, locator: locator) {
+            case .nothing:
+                break
+            case .recited(let range):
+                stoppedAt = nil
+                handlers?.lift(said[range].compactMap(\.word))
+                recited(range)
+            case .elsewhere(let place):
+                if place.page == tracker.page {
+                    begin(at: place)
+                } else {
+                    arriving = place
+                    handlers?.go(place.page)      // the view shows the page, then calls `follow`
+                }
+            case .stopped(let index):
+                stoppedAt = index < said.count ? said[index].word : nil
+            }
+            if tracker.isDone, !pageEnded {
                 pageEnded = true
-                onPageEnd?()
+                stoppedAt = nil
+                handlers?.pageEnd()
             }
         }
     }

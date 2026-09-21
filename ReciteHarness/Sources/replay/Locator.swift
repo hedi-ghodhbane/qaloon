@@ -1,0 +1,1 @@
+../../../Mushaf/Mushaf/Services/Recite/Locator.swift

@@ -12,16 +12,10 @@ struct Follower {
     /// Taken off a match per word beyond the cursor: the same phrase often returns a few
     /// words later (67:16 / 67:17), and the reader is at the nearer one.
     static let far = 0.15
-    /// Unheard words one advance may pass over.
-    static let skip = 2
-    /// Passes with speech that moved nothing before the reader is looked for elsewhere on the
-    /// page, and what finding them takes: this many words in a row, this much alike.
-    static let lost = 4, run = 3, sure = 0.8
 
     private let expected: [String]
     /// Index of the next word not yet recited.
     private(set) var cursor = 0
-    private var stalls = 0
 
     init(words: [String]) {
         expected = words.map(Skeleton.of)
@@ -29,10 +23,18 @@ struct Follower {
 
     var isDone: Bool { cursor >= expected.count }
 
+    /// The skeletons of a hypothesis' words.
+    static func words(of hypothesis: String) -> [String] {
+        hypothesis.split(whereSeparator: \.isWhitespace).map { Skeleton.of(String($0)) }.filter { !$0.isEmpty }
+    }
+
     /// Takes a hypothesis; returns the indices it newly covers (empty when it moves nothing).
     /// `final` says the sound ended in a pause, so the last word heard is a whole word.
+    ///
+    /// The cursor only ever moves over words that were heard, one after the other: a reader
+    /// who leaves a word out is stopped there, whatever they go on to say.
     mutating func feed(_ hypothesis: String, final: Bool) -> Range<Int> {
-        var heard = hypothesis.split(whereSeparator: \.isWhitespace).map { Skeleton.of(String($0)) }.filter { !$0.isEmpty }
+        var heard = Self.words(of: hypothesis)
         if !final, let last = heard.last {
             // The last word of a live hypothesis is usually cut short. It stays only when it
             // is already, letter for letter, a word the text expects next.
@@ -68,7 +70,7 @@ struct Follower {
                 if v > best { best = v; at = (i, j) }
             }
         }
-        guard var (i, j) = at else { return relocate(heard) }
+        guard var (i, j) = at else { return cursor..<cursor }
         var hits: [Int] = []
         while i > 0, j > 0, step[i][j] != .none {
             switch step[i][j] {
@@ -83,58 +85,24 @@ struct Follower {
         hits.reverse()
 
         // The recitation continues from the cursor, so the matches must too: walk them in
-        // order and stop at the first that would leap over more than `skip` unheard words.
+        // order and stop at the first that would leap over a word that was not heard.
         var reach = cursor, fresh = 0
         for h in hits where h >= reach {
-            if h - reach > Self.skip { break }
+            if h != reach { break }
             reach = h + 1
             fresh += 1
         }
-        guard fresh > 0 else { return relocate(heard) }
+        guard fresh > 0 else { return cursor..<cursor }
         // One new word needs support: an earlier match in the same hypothesis, or a long word.
         let anchored = hits.contains { $0 < cursor } || fresh >= 2
-        if !anchored, expected[reach - 1].unicodeScalars.count < 4 { return relocate(heard) }
+        if !anchored, expected[reach - 1].unicodeScalars.count < 4 { return cursor..<cursor }
         let moved = cursor..<reach
         cursor = reach
-        stalls = 0
         return moved
-    }
-
-    /// The reader has been speaking for a while and nothing near the cursor fits: they began
-    /// elsewhere on the page, or went back. Look everywhere for the last words heard — a run of
-    /// them in a row, ending where the sound ends, found in one place only — and go there.
-    /// Only that run is returned: what was jumped over was not recited, and stays covered.
-    private mutating func relocate(_ heard: [String]) -> Range<Int> {
-        guard heard.count >= Self.run else { return cursor..<cursor }
-        stalls += 1
-        guard stalls >= Self.lost else { return cursor..<cursor }
-        let tail = Array(heard.suffix(6))
-        var best = 0, bestAt = 0, places = 0
-        for from in 0...(tail.count - Self.run) {
-            for e in expected.indices {
-                var k = 0
-                while from + k < tail.count, e + k < expected.count,
-                      Skeleton.similarity(tail[from + k], expected[e + k]) >= Self.sure { k += 1 }
-                guard from + k == tail.count, k >= Self.run else { continue }
-                if k > best {
-                    best = k; bestAt = e; places = 1
-                } else if k == best, e != bestAt {
-                    places += 1
-                }
-            }
-        }
-        guard places == 1 else { return cursor..<cursor }
-        stalls = 0
-        // Found just behind the cursor: not lost, only pausing, or saying a phrase again. (A live
-        // transcript loses its last word, so its end is often a word short of the cursor.)
-        guard !(cursor - Self.back...cursor).contains(bestAt + best) else { return cursor..<cursor }
-        cursor = bestAt + best
-        return bestAt..<cursor
     }
 
     /// Puts the cursor on a word: the reader tapped ahead, or covered part of the page again.
     mutating func move(to index: Int) {
         cursor = max(0, min(index, expected.count))
-        stalls = 0
     }
 }

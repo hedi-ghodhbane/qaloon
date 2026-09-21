@@ -19,6 +19,8 @@ struct PageCell: View {
     /// Word keys the reader has uncovered (hide mode). Covers are per word; an ayah is
     /// uncovered by uncovering its words.
     var revealedWords: Set<Int> = []
+    /// Key of the word a reciting reader is stopped at: its cover is outlined.
+    var stopped: Int?
     let onTap: (Int) -> Void
     var onTapWord: (LayoutWord) -> Void = { _ in }
 
@@ -64,6 +66,7 @@ struct PageCell: View {
                     .frame(width: geo.size.width, height: geo.size.height)
                 }
                 PageOverlay(layout: layout, hiddenWords: hiddenWords,
+                            stopped: hiddenWords.first { $0.key == stopped },
                             selected: selected, active: active,
                             progress: progress, keepMarkers: keepMarkers,
                             scale: scale, origin: frame.origin)
@@ -123,6 +126,8 @@ struct PageOverlay: View {
     let layout: PageLayout
     /// Words to cover (hide mode).
     var hiddenWords: [LayoutWord] = []
+    /// The covered word a reciting reader is stopped at.
+    var stopped: LayoutWord?
     let selected: Int?
     let active: Int?
     let progress: Int?
@@ -213,6 +218,12 @@ struct PageOverlay: View {
                 hiddenSpans[line, default: []].append(rect.minX...rect.maxX)
             }
             for w in hiddenWords { cover(w.rect, line: w.line) }
+            // Where a reciting reader is stopped: the cover stays, and says "this one".
+            if let w = stopped, let box = lineBoxes[w.line] {
+                let r = display(CGRect(x: w.rect.minX, y: box.minY, width: w.rect.width, height: box.height), padY: 6)
+                context.stroke(Path(roundedRect: r.insetBy(dx: 1, dy: 1), cornerRadius: 6 * scale),
+                               with: .color(Theme.stopped), lineWidth: 2)
+            }
             // With the signs hidden too, an ayah's sign goes while any of its words is covered.
             if !keepMarkers {
                 let covered = Set(hiddenWords.map(\.ayahId))

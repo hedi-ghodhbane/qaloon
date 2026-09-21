@@ -82,7 +82,7 @@ class Follower:
     BACK, AHEAD = 6, 14          # window of expected words searched around the cursor
     OK = 0.72                    # skeleton similarity that counts as the same word
     FAR = 0.15                   # per word beyond the cursor, taken off a match
-    SKIP = 2                     # unheard words one advance may pass over
+    SKIP = 0                     # unheard words one advance may pass over: none, a reader who leaves a word out is stopped
 
     def __init__(self, words):
         self.E = [skel(w) for w in words]
@@ -235,6 +235,8 @@ def replay(a, stem):
             print("  %6.1fs cursor %3d | %s" % (now, F.cursor, text))
         F.feed(text.split(), now, final=final)
     report(a, stem, words, F, hyps[-1][0], [])
+    json.dump({"words": [(w[0], w[1], w[2], F.when[k]) for k, w in enumerate(words)]},
+              open(stem + ".follow.json", "w"), ensure_ascii=False)
 
 
 def report(a, stem, words, F, total, cost):

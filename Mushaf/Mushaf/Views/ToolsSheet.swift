@@ -28,6 +28,7 @@ struct ToolsSheet: View {
     var body: some View {
         NavigationStack {
             Form {
+                recited
                 progress
                 listening
                 memorising
@@ -48,6 +49,20 @@ struct ToolsSheet: View {
         #if os(macOS)
         .frame(minWidth: 440, minHeight: 600)
         #endif
+    }
+
+    private var recited: some View {
+        let today = ReciteStats.shared.today
+        return Section("تلاوتي") {
+            NavigationLink {
+                StatsView()
+            } label: {
+                LabeledContent("اليوم",
+                               value: today.words == 0
+                                   ? "لم تتلُ بعد"
+                                   : "\(Quran.arabicDigits(today.words)) كلمة · \(Quran.arabicDigits(today.hasanat)) حسنة")
+            }
+        }
     }
 
     private var progress: some View {
@@ -190,7 +205,7 @@ struct ToolsSheet: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
             if ReciteSession.isAvailable {
-                Text("زرّ «سمِّع» يستمع إلى تلاوتك ويُظهر كل كلمة حين تقرؤها، ويقلب الصفحة عند آخرها. ابدأ من أي موضع في الصفحة. الاستماع يجري على جهازك ولا يغادره الصوت.")
+                Text("زرّ «سمِّع» يستمع إلى تلاوتك ويُظهر كل كلمة حين تقرؤها، ويقلب الصفحة عند آخرها. ابدأ من أي موضع، ولو من سورة أخرى: ينتقل إليها. إن تركتَ كلمة توقّف الإظهار عندها وأُحيطت بإطار أحمر حتى تقرأها، أو المسْها لتتجاوزها. الاستماع يجري على جهازك ولا يغادره الصوت.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }

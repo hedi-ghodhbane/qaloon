@@ -141,10 +141,12 @@ final class Quran {
         return "\(label(ayahId: from)) – \(label(ayahId: to))"
     }
 
-    static func arabicDigits(_ n: Int) -> String {
+    static func arabicDigits(_ n: Int) -> String { arabicDigits(String(n)) }
+
+    static func arabicDigits(_ text: String) -> String {
         let digits: [Character] = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"]
-        return String(String(n).map { ch -> Character in
-            if let d = ch.wholeNumberValue, (0...9).contains(d) { return digits[d] }
+        return String(text.map { ch -> Character in
+            if ch.isASCII, let d = ch.wholeNumberValue { return digits[d] }
             return ch
         })
     }
