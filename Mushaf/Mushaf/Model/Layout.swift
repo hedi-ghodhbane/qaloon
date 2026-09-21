@@ -23,6 +23,8 @@ struct LayoutWord: Hashable {
     let line: Int
     let rect: CGRect
     let kind: Kind
+    /// The word as the mushaf spells it: what a recitation is matched against.
+    let text: String
 
     /// Stable key for "this word has been uncovered" (an ayah has at most 130 words).
     var key: Int { ayahId * 1000 + index }
@@ -71,6 +73,18 @@ struct PageLayout {
         words.filter { $0.isHideable(keepOpening: keepOpening) }
     }
 
+    /// What a reader says on this page, in order: every word but the star, and the basmala
+    /// ahead of a surah's first ayah (it has no word boxes, so no `word`).
+    var recitation: [(text: String, word: LayoutWord?)] {
+        ayahs.flatMap { a -> [(text: String, word: LayoutWord?)] in
+            let said = a.words.filter { $0.kind != .star }.map { (text: $0.text, word: Optional($0)) }
+            let opens = a.ayah == 1 && a.surah != 9 && a.words.first?.index == 1
+            return (opens ? Self.basmala.map { (text: $0, word: nil) } : []) + said
+        }
+    }
+
+    private static let basmala = ["بسم", "الله", "الرحمن", "الرحيم"]
+
     /// The ayah whose end-of-ayah sign ۝ contains `point`: in hide mode the sign is the handle
     /// for the whole ayah, whatever a tap on its words does.
     func ayah(markerAt point: CGPoint, padding: CGFloat) -> LayoutAyah? {
@@ -96,7 +110,7 @@ final class LayoutStore {
         let pages: [[Row]]
     }
 
-    /// `[ayahId, surah, ayah, [[line, x1, y1, x2, y2], …], [x1, y1, x2, y2] | null, [[w, line, x1, y1, x2, y2, kind], …]]`
+    /// `[ayahId, surah, ayah, [[line, x1, y1, x2, y2], …], [x1, y1, x2, y2] | null, [[w, line, x1, y1, x2, y2, kind], …], [spelling, …]]`
     private struct Row: Decodable {
         let id: Int
         let surah: Int
@@ -104,6 +118,8 @@ final class LayoutStore {
         let segments: [[Double]]
         let marker: [Double]?
         let words: [[Double]]
+        /// Spellings, one per row of `words`.
+        let texts: [String]
 
         init(from decoder: Decoder) throws {
             var c = try decoder.unkeyedContainer()
@@ -113,6 +129,7 @@ final class LayoutStore {
             segments = try c.decode([[Double]].self)
             marker = c.isAtEnd ? nil : try c.decode([Double]?.self)
             words = c.isAtEnd ? [] : try c.decode([[Double]].self)
+            texts = c.isAtEnd ? [] : try c.decode([String].self)
         }
     }
 
@@ -128,11 +145,12 @@ final class LayoutStore {
                 let marker: CGRect? = r.marker.flatMap { m in
                     m.count >= 4 ? CGRect(x: m[0], y: m[1], width: m[2] - m[0], height: m[3] - m[1]) : nil
                 }
-                let words: [LayoutWord] = r.words.compactMap { v in
+                let words: [LayoutWord] = r.words.enumerated().compactMap { n, v in
                     guard v.count >= 7 else { return nil }
                     return LayoutWord(ayahId: r.id, index: Int(v[0]), line: Int(v[1]),
                                       rect: CGRect(x: v[2], y: v[3], width: v[4] - v[2], height: v[5] - v[3]),
-                                      kind: LayoutWord.Kind(rawValue: Int(v[6])) ?? .word)
+                                      kind: LayoutWord.Kind(rawValue: Int(v[6])) ?? .word,
+                                      text: n < r.texts.count ? r.texts[n] : "")
                 }
                 return LayoutAyah(id: r.id, surah: r.surah, ayah: r.ayah, segments: r.segments.compactMap { v in
                     guard v.count >= 5 else { return nil }

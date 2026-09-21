@@ -189,6 +189,11 @@ struct ToolsSheet: View {
                  + " اللمس مرة أخرى يعيد الإخفاء.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
+            if ReciteSession.isAvailable {
+                Text("زرّ «سمِّع» يستمع إلى تلاوتك ويُظهر كل كلمة حين تقرؤها، ويقلب الصفحة عند آخرها. ابدأ من أي موضع في الصفحة. الاستماع يجري على جهازك ولا يغادره الصوت.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 

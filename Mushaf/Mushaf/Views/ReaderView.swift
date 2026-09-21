@@ -31,6 +31,7 @@ struct ReaderView: View {
     private let quran = Quran.shared
     private var player: AyahPlayer { AyahPlayer.shared }
     private var images: PageImageStore { PageImageStore.shared }
+    private var recite: ReciteSession { ReciteSession.shared }
 
     enum Sheet: String, Identifiable {
         case navigate, tools
@@ -61,6 +62,7 @@ struct ReaderView: View {
         VStack(spacing: 0) {
             caption
             pager
+            listeningLine
             bottomBar
         }
         .background(Theme.parchment.ignoresSafeArea())
@@ -92,6 +94,7 @@ struct ReaderView: View {
         }
         // Changing what is hidden starts the page covered again.
         .onChange(of: keepOpening) { _, _ in hideAll() }
+        .onChange(of: hideMode) { _, on in if !on { recite.stop() } }
         // A page adopted from another device (sync writes `lastPage`) moves the reader.
         .onChange(of: savedPage) { _, newValue in
             let target = quran.clampPage(newValue)
@@ -99,7 +102,7 @@ struct ReaderView: View {
         }
         // Coming back to the app is when the other device's progress matters.
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { Task { await SyncService.shared.syncNow() } }
+            if phase == .active { Task { await SyncService.shared.syncNow() } } else { recite.stop() }
         }
         // Hide mode: once every cover on the page is lifted, continue on the
         // next page (hidden again) after a short pause. Any change cancels.
@@ -182,6 +185,31 @@ struct ReaderView: View {
         .scrollIndicators(.hidden)
     }
 
+    /// While listening: what was last heard, so the reader can tell they are being followed.
+    @ViewBuilder
+    private var listeningLine: some View {
+        if case .failed(let message) = recite.status {
+            Text(message)
+                .font(.footnote)
+                .foregroundStyle(.red)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 4)
+        } else if recite.isOn {
+            HStack(spacing: 6) {
+                Image(systemName: "waveform")
+                    .symbolEffect(.variableColor.iterative, isActive: recite.status == .listening)
+                Text(recite.status == .loading ? "جارٍ تجهيز الاستماع…" : (recite.heard.isEmpty ? "اقرأ…" : recite.heard))
+                    .lineLimit(1)
+                    .truncationMode(.head)
+            }
+            .font(.footnote)
+            .foregroundStyle(Theme.inkSoft)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 4)
+        }
+    }
+
     private var bottomBar: some View {
         HStack(spacing: 4) {
             BarButton(title: hideMode ? "إظهار" : "إخفاء",
@@ -201,17 +229,23 @@ struct ReaderView: View {
                     BarButton(title: "آية (\(Quran.arabicDigits(Set(covered.map(\.ayahId)).count)))",
                               system: "chevron.forward.2", active: false) { revealNextAyah() }
                 }
+                // Recite aloud and the words appear as they are said.
+                if ReciteSession.isAvailable {
+                    BarButton(title: recite.status == .loading ? "تحميل…" : "سمِّع",
+                              system: recite.isOn ? "mic.fill" : "mic", active: recite.isOn) { toggleRecite() }
+                }
             }
             BarButton(title: player.isBusy ? "إيقاف" : (selectedAyah != nil ? "الآية" : "استمع"),
                       system: player.isBusy ? "stop.fill" : "play.fill",
                       active: player.isBusy) { togglePlay() }
-            // Progress: with an ayah selected, save it; otherwise jump back to it.
-            if let id = selectedAyah, id != progressAyah {
+            // Progress: with an ayah selected, save it; otherwise jump back to it. Not while
+            // hiding: the bar is full there, and the tools sheet has both.
+            if !hideMode, let id = selectedAyah, id != progressAyah {
                 BarButton(title: "احفظ", system: "bookmark", active: false) {
                     progressAyah = id
                     selectedAyah = nil
                 }
-            } else if progressAyah > 0 {
+            } else if !hideMode, progressAyah > 0 {
                 BarButton(title: "موضعي", system: "bookmark.fill", active: false) {
                     goTo(quran.ayah(progressAyah).pageStart)
                 }
@@ -251,13 +285,19 @@ struct ReaderView: View {
             revealedWords.subtract(keys)
         } else {
             revealedWords.formUnion(keys)
+            skipRecitation(pastAyah: id)
         }
     }
 
     /// A tapped word: lift its cover, or put it back. The star and a kept opening word have none.
     private func tap(_ word: LayoutWord) {
         guard word.isHideable(keepOpening: keepOpening) else { return }
-        if revealedWords.contains(word.key) { revealedWords.remove(word.key) } else { revealedWords.insert(word.key) }
+        if revealedWords.contains(word.key) {
+            revealedWords.remove(word.key)
+        } else {
+            revealedWords.insert(word.key)
+            recite.skip(past: word)
+        }
     }
 
     /// Keys of the words of an ayah that hide mode covers on this page.
@@ -269,15 +309,45 @@ struct ReaderView: View {
 
     private func hideAll() {
         revealedWords = []
+        if recite.isOn { recite.follow(layout) }
     }
 
     private func revealNextWord() {
-        if let next = coveredWords.first { revealedWords.insert(next.key) } else { turn(1) }
+        guard let next = coveredWords.first else { return turn(1) }
+        revealedWords.insert(next.key)
+        recite.skip(past: next)
     }
 
     /// Lifts what is left of the first ayah that still has a covered word.
     private func revealNextAyah() {
-        if let next = coveredWords.first { revealedWords.formUnion(wordKeys(ofAyah: next.ayahId)) } else { turn(1) }
+        guard let next = coveredWords.first else { return turn(1) }
+        revealedWords.formUnion(wordKeys(ofAyah: next.ayahId))
+        skipRecitation(pastAyah: next.ayahId)
+    }
+
+    /// An ayah lifted by hand: the listener goes on from its last word on this page.
+    private func skipRecitation(pastAyah id: Int) {
+        if let last = layout.ayahs.first(where: { $0.id == id })?.words.last { recite.skip(past: last) }
+    }
+
+    /// Starts or stops listening. Each word heard loses its cover; the page turn follows by itself.
+    private func toggleRecite() {
+        if recite.isOn {
+            recite.stop()
+        } else {
+            recite.start(page: layout) { words in
+                revealedWords.formUnion(words.map(\.key))
+            } onPageEnd: {
+                // Begun mid-page, the top of it is still covered and the page would not turn by
+                // itself; the recitation has reached its end all the same.
+                guard autoAdvance, remaining > 0, current < quran.pageCount else { return }
+                let from = current
+                Task {
+                    try? await Task.sleep(for: .milliseconds(900))
+                    if current == from, recite.isOn { turn(1) }
+                }
+            }
+        }
     }
 
     private func togglePlay() {
