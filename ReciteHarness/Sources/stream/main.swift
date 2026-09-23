@@ -29,7 +29,7 @@ let level = (wav.reduce(0) { $0 + $1 * $1 } / Float(wav.count)).squareRoot()
 
 var follower = Follower(words: words)
 var when = [Double?](repeating: nil, count: words.count)
-var cost: [Double] = [], hyps: [[Any]] = []
+var cost: [Double] = [], hyps: [[Any]] = [], tokens: [Int] = []
 var t = hop
 while true {
     let now = min(t, total)
@@ -39,6 +39,7 @@ while true {
     let t0 = Date()
     let results = try await kit.transcribe(audioArray: seg, decodeOptions: options)
     cost.append(Date().timeIntervalSince(t0))
+    tokens.append(results.reduce(0) { $0 + $1.segments.reduce(0) { $0 + $1.tokens.count } })
     let text = results.map(\.text).joined(separator: " ").trimmingCharacters(in: .whitespaces)
     let final = now >= total || quiet
     hyps.append([now, final, text])
@@ -58,5 +59,5 @@ lags.sort(); cost.sort()
 func pick(_ v: [Double], _ q: Double) -> Double { v.isEmpty ? .nan : v[min(v.count - 1, Int(Double(v.count) * q))] }
 print("cursor reached \(follower.cursor) / \(words.count) words; ayah ends followed \(lags.count), never reached \(missing)")
 print(String(format: "lag at ayah ends (s): median %.1f  p90 %.1f  max %.1f", pick(lags, 0.5), pick(lags, 0.9), lags.last ?? .nan))
-print(String(format: "model pass: median %.2f s  p90 %.2f s  max %.2f s  (%d passes)", pick(cost, 0.5), pick(cost, 0.9), cost.last ?? .nan, cost.count))
+print(String(format: "model pass: median %.2f s  p90 %.2f s  max %.2f s  (%d passes); tokens per pass: mean %.0f", pick(cost, 0.5), pick(cost, 0.9), cost.last ?? .nan, cost.count, Double(tokens.reduce(0, +)) / Double(max(1, tokens.count))))
 try JSONSerialization.data(withJSONObject: hyps).write(to: URL(fileURLWithPath: stem + ".hyps-coreml.json"))

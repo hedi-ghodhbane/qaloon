@@ -22,6 +22,9 @@ final class ReciteSession {
     private(set) var heard = ""
     /// The word a reader is stopped at: they go on speaking, and it is not what they say.
     private(set) var stoppedAt: LayoutWord?
+    /// How long the model's last pass took: shown small, so a slow device can be told apart
+    /// from a follower that will not move.
+    private(set) var passSeconds = 0.0
 
     var isOn: Bool { status == .listening || status == .loading }
 
@@ -42,8 +45,11 @@ final class ReciteSession {
     static var isAvailable: Bool { modelFolder != nil }
 
     private static let rate = 16_000
-    /// Seconds between passes, and of sound given to each.
-    private static let hop = 0.5, window = 10.0
+    /// Seconds between the starts of passes (a slow device goes straight on), and of sound
+    /// given to each. Less sound would decode faster (6 s: 31 tokens for 44, 50 ms on a Mac)
+    /// but the model then mishears words it gets right with more context, and a follower held
+    /// to the text cannot pass a misheard word: on the recordings it stalled.
+    private static let hop = 0.4, window = 10.0
 
     /// What the reader view does for the listener.
     struct Handlers {
@@ -131,9 +137,11 @@ final class ReciteSession {
                 throw Failure("اسمح للتطبيق باستعمال الميكروفون من إعدادات الجهاز.")
             }
             if kit == nil {
+                // Prewarmed: Core ML specialises the models for the Neural Engine at load (long
+                // the first time after an install), not during the first words recited.
                 kit = try await WhisperKit(WhisperKitConfig(modelFolder: folder.path, tokenizerFolder: folder,
                                                             verbose: false, logLevel: .error,
-                                                            prewarm: false, load: true, download: false))
+                                                            prewarm: true, load: true, download: false))
             }
             if locator == nil {
                 // Every word of the mushaf, once: a second or so, off the main thread.
@@ -158,8 +166,12 @@ final class ReciteSession {
         var level: Float = 0          // how loud this reader's voice gets: the measure of a pause
         var settled = false           // the pause has already been read once: nothing new to hear
         var lastVoice: Date?          // Whisper makes words up out of silence: it is given none
+        var nextAt = Date()
         while !Task.isCancelled {
-            try await Task.sleep(for: .seconds(Self.hop))
+            // Passes are paced from their starts: a pass slower than the hop is followed at once.
+            let wait = nextAt.timeIntervalSinceNow
+            if wait > 0 { try await Task.sleep(for: .seconds(wait)) }
+            nextAt = Date().addingTimeInterval(Self.hop)
             let processor = kit.audioProcessor
             if processor.audioSamples.count > Self.rate * 40 {
                 processor.purgeAudioSamples(keepingLast: Self.rate * Int(Self.window + 2))
@@ -178,9 +190,11 @@ final class ReciteSession {
             if quiet, settled { continue }
             settled = quiet
 
+            let started = Date()
             let results = try await kit.transcribe(audioArray: sound, decodeOptions: options)
             let text = results.map(\.text).joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines)
             guard !Task.isCancelled else { return }
+            passSeconds = Date().timeIntervalSince(started)
             heard = text
             switch tracker.hear(text, final: quiet, locator: locator) {
             case .nothing:

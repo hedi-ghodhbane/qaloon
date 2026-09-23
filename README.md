@@ -102,8 +102,10 @@ The model is [tarteel-ai/whisper-base-ar-quran](https://huggingface.co/tarteel-a
 (Apache-2.0), converted to Core ML and run with [WhisperKit](https://github.com/argmaxinc/WhisperKit)
 (MIT). Without the model folder the app builds and runs as before, without the «سمِّع» button.
 
-Twice a second the last 10 s of sound go through the model (0.15–0.25 s a pass on a Mac),
-and the text it returns goes to the follower. The follower never trusts that text as such:
+Every 0.4 s — or as fast as the device manages — the last 10 s of sound go through the model
+(0.15–0.25 s a pass on a Mac; the pass time is shown next to what was heard), and the text it
+returns goes to the follower. The model is prewarmed while «تحميل…» shows, so the first words
+are not slower than the rest. The follower never trusts that text as such:
 it knows the page's words, reduces both sides to a consonant skeleton (`ٱلصَّلَوٰةَ` and
 `الصلاة` are the same), and only asks which of the next few expected words were just said.
 That is why a model trained on Ḥafṣ follows a Qālūn recitation: the differences are in
@@ -126,7 +128,8 @@ vowels, imāla and ṣila, which the skeleton drops.
   then a mistake to notice, not a wish to follow. Stopping and starting «سمِّع», or turning
   the page by hand, frees them again.
 - A reader who goes on speaking for four seconds with nothing fitting is shown where they
-  are stopped. A pause does not count: only new speech does.
+  are stopped, with a haptic. A pause does not count: only new speech does. A word the model
+  mishears looks the same as a word left out: tap it to go on.
 - A cover lifted by hand moves the cursor past it.
 
 Measured on MP3Quran's Qālūn recordings (al-Ḥuṣarī, al-Ḥudhayfī; surahs 1, 67, 78; 909

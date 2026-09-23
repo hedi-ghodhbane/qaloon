@@ -16,6 +16,8 @@ struct Follower {
     private let expected: [String]
     /// Index of the next word not yet recited.
     private(set) var cursor = 0
+    /// The last word of the previous live hypothesis: heard twice running, it is whole.
+    private var lastHeard = ""
 
     init(words: [String]) {
         expected = words.map(Skeleton.of)
@@ -37,9 +39,14 @@ struct Follower {
         var heard = Self.words(of: hypothesis)
         if !final, let last = heard.last {
             // The last word of a live hypothesis is usually cut short. It stays only when it
-            // is already, letter for letter, a word the text expects next.
+            // is already, letter for letter, a word the text expects next, or when the pass
+            // before heard the same: a word that stays put is whole.
             let near = expected[min(cursor, expected.count)..<min(cursor + 3, expected.count)]
-            if !(last.unicodeScalars.count >= 3 && near.contains(last)) { heard.removeLast() }
+            let whole = (last.unicodeScalars.count >= 3 && near.contains(last)) || last == lastHeard
+            lastHeard = last
+            if !whole { heard.removeLast() }
+        } else {
+            lastHeard = ""
         }
         guard !heard.isEmpty, !isDone else { return cursor..<cursor }
 

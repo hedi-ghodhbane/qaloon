@@ -114,6 +114,8 @@ struct ReaderView: View {
             guard !Task.isCancelled else { return }
             turn(1)
         }
+        // A word left out: the reader feels it, not only sees the red outline.
+        .sensoryFeedback(.error, trigger: recite.stoppedAt) { _, now in now != nil }
         .focusable()
         .focused($focused)
         .focusEffectDisabled()
@@ -202,6 +204,13 @@ struct ReaderView: View {
                 Text(recite.status == .loading ? "جارٍ تجهيز الاستماع…" : (recite.heard.isEmpty ? "اقرأ…" : recite.heard))
                     .lineLimit(1)
                     .truncationMode(.head)
+                if recite.passSeconds > 0 {
+                    Spacer(minLength: 4)
+                    // The model's pass time, so a slow device shows for what it is.
+                    Text(Quran.arabicDigits(String(format: "%.1f", recite.passSeconds)).replacingOccurrences(of: ".", with: "٫") + " ث")
+                        .monospacedDigit()
+                        .foregroundStyle(recite.passSeconds > 0.6 ? Theme.stopped : Theme.inkSoft)
+                }
             }
             .font(.footnote)
             .foregroundStyle(Theme.inkSoft)
