@@ -139,8 +139,8 @@ struct PageOverlay: View {
 
     var body: some View {
         Canvas(rendersAsynchronously: false) { context, _ in
-            // Generous enough vertically to swallow diacritics that poke out of the line box.
-            let padX: CGFloat = 4
+            // At the ends of a line, and above the first / below the last, past the boxes.
+            let padX: CGFloat = 8
             let padY: CGFloat = 14
             func display(_ r: CGRect, padX: CGFloat = 0, padY: CGFloat = 0) -> CGRect {
                 CGRect(x: origin.x + (r.minX - padX) * scale,
@@ -159,6 +159,18 @@ struct PageOverlay: View {
             func band(_ s: Segment) -> CGRect {
                 let box = lineBoxes[s.line] ?? s.rect
                 return CGRect(x: s.rect.minX, y: box.minY, width: s.rect.width, height: box.height)
+            }
+            // The vertical reach of a line's covers: halfway to the lines above and below, so
+            // that nothing shows between lines (a descender, a mark; on 961 of the 8215 line
+            // pairs the pitch is wider than the boxes plus padding) — but not more than `reach`,
+            // which keeps a surah heading, and the basmala under it, out of the covers.
+            let reach: CGFloat = 40
+            var top: [Int: CGFloat] = [:], bottom: [Int: CGFloat] = [:]
+            let lines = lineBoxes.keys.sorted()
+            for (i, line) in lines.enumerated() {
+                let box = lineBoxes[line]!
+                top[line] = i > 0 ? box.minY - min(reach, (box.minY - lineBoxes[lines[i - 1]]!.maxY) / 2 + 1) : box.minY - padY
+                bottom[line] = i + 1 < lines.count ? box.maxY + min(reach, (lineBoxes[lines[i + 1]]!.minY - box.maxY) / 2 + 1) : box.maxY + padY
             }
             // Ayah signs to leave uncovered (all of them, so a neighbour's cover never clips one).
             // The sign is a medallion — a diamond with bulging sides — so the hole is the
@@ -209,18 +221,38 @@ struct PageOverlay: View {
                 }
             }
 
+            // Everything that sits on a line, words and ayah signs, in order: a cover reaches
+            // halfway to the neighbours of what it covers, so the line is tiled with no gap.
+            // The word boxes already meet each other; between a word and a sign they stop at
+            // the midpoint, and the sign's own box is narrower than that — the strip between,
+            // covered by nothing, is where a tail showed beside every sign.
+            var items: [Int: [CGRect]] = [:]
+            for a in layout.ayahs {
+                for w in a.words { items[w.line, default: []].append(w.rect) }
+                if let m = a.marker, let line = lineBoxes.first(where: { $0.value.minY <= m.midY && m.midY <= $0.value.maxY })?.key {
+                    items[line, default: []].append(m)
+                }
+            }
+            for line in items.keys { items[line]!.sort { $0.minX < $1.minX } }
+
             // Covers, one per hidden word; a hidden ayah is simply all of its words. The page PNGs
             // are transparent: the "paper" is the cell background, so a cover in the same colour is
-            // invisible. The boxes tile the line, so a cover takes the word's own width (a hair
-            // more, against a seam between neighbours; the usual padding at the ends of the line)
-            // and the line's full height. They are drawn through `covering`, clipped so the ayah
-            // signs stay visible.
+            // invisible. A cover takes the line's reach vertically, and, sideways, from midway to
+            // the item before to midway to the item after (the ends of a line get padding). All
+            // of them make ONE path, filled once: covers drawn one after the other leave a seam
+            // where their antialiased edges overlap — an edge pixel half-covered twice is not
+            // covered fully — and a letter stroke under the join shows as a tick. Drawn through
+            // `covering`, clipped so the ayah signs stay visible.
+            var covers = Path()
             func cover(_ rect: CGRect, line: Int) {
                 let box = lineBoxes[line] ?? rect
-                let x0 = rect.minX - (rect.minX <= box.minX + 1 ? padX : 0.75)
-                let x1 = rect.maxX + (rect.maxX >= box.maxX - 1 ? padX : 0.75)
-                let r = display(CGRect(x: x0, y: box.minY, width: x1 - x0, height: box.height), padY: padY)
-                covering.fill(Path(r), with: .color(Theme.parchment))
+                let row = items[line] ?? []
+                let before = row.filter { $0.maxX <= rect.minX + 1 && $0 != rect }.max { $0.maxX < $1.maxX }
+                let after = row.filter { $0.minX >= rect.maxX - 1 && $0 != rect }.min { $0.minX < $1.minX }
+                let x0 = before.map { ($0.maxX + rect.minX) / 2 - 0.75 } ?? min(rect.minX, box.minX) - padX
+                let x1 = after.map { ($0.minX + rect.maxX) / 2 + 0.75 } ?? max(rect.maxX, box.maxX) + padX
+                let y0 = top[line] ?? box.minY - padY, y1 = bottom[line] ?? box.maxY + padY
+                covers.addRect(display(CGRect(x: x0, y: y0, width: x1 - x0, height: y1 - y0)))
                 hiddenSpans[line, default: []].append(rect.minX...rect.maxX)
             }
             for w in hiddenWords { cover(w.rect, line: w.line) }
@@ -240,6 +272,7 @@ struct PageOverlay: View {
                     cover(sign, line: line)
                 }
             }
+            covering.fill(covers, with: .color(Theme.parchment))
 
             // One faint dashed rule per line, a little under the line's text, spanning the
             // hidden ayahs on it (adjacent spans merge) and breaking around the ayah signs.
