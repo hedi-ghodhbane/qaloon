@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import OSLog
 import WhisperKit
 
 /// Listens to the reader and follows the recitation through the page: twice a second the last
@@ -11,6 +12,7 @@ import WhisperKit
 @Observable
 final class ReciteSession {
     static let shared = ReciteSession()
+    private static let log = Logger(subsystem: "com.makeathar.mushaf", category: "recite")
 
     enum Status: Equatable {
         case idle, loading, listening
@@ -87,9 +89,12 @@ final class ReciteSession {
     func warmUp() {
         guard Self.isAvailable, kit == nil, preparingKit == nil else { return }
         preparingKit = Task.detached(priority: .utility) { [folder = Self.modelFolder!] in
-            try await WhisperKit(WhisperKitConfig(modelFolder: folder.path, tokenizerFolder: folder,
-                                                  verbose: false, logLevel: .error,
-                                                  prewarm: true, load: true, download: false))
+            let started = Date()
+            let kit = try await WhisperKit(WhisperKitConfig(modelFolder: folder.path, tokenizerFolder: folder,
+                                                            verbose: false, logLevel: .error,
+                                                            prewarm: true, load: true, download: false))
+            Self.log.notice("model ready in \(Date().timeIntervalSince(started), format: .fixed(precision: 1)) s (specialisation \(kit.currentTimings.prewarmLoadTime, format: .fixed(precision: 1)) s)")
+            return kit
         }
         if locator == nil {
             Task.detached(priority: .utility) {
