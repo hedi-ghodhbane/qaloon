@@ -127,9 +127,18 @@ vowels, imāla and ṣila, which the skeleton drops.
   every surah. Once held to the text, the reader is never looked for elsewhere — a jump is
   then a mistake to notice, not a wish to follow. Stopping and starting «سمِّع», or turning
   the page by hand, frees them again.
-- A reader who goes on speaking for four seconds with nothing fitting is shown where they
-  are stopped, with a haptic. A pause does not count: only new speech does. A word the model
-  mishears looks the same as a word left out: tap it to go on.
+- A reader who has said two or more words past the cursor that the text cannot take, and
+  stays that way for three seconds or so, is shown where they are stopped, with a haptic.
+  A pause is not that, nor is a long madd (the model rewrites the end of what it hears as
+  the sound goes on). A word the model mishears looks the same as a word left out: tap it
+  to go on.
+- The recogniser writes «يا أيها» as two words; the mushaf writes «يٰٓأيها» as one. The
+  vocative is joined to the word after it before matching, else every surah that opens so
+  stalls on its first word.
+- The istiʿādha, said before reciting, is found once in the text (16:98): its words are
+  left out of the search for where the reader is. And a place the locator found is
+  provisional until the follower itself advances from it, so a wrong one is undone by the
+  next words rather than kept.
 - A cover lifted by hand moves the cursor past it.
 
 Measured on MP3Quran's Qālūn recordings (al-Ḥuṣarī, al-Ḥudhayfī; surahs 1, 67, 78; 909

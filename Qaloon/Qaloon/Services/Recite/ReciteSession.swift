@@ -111,7 +111,7 @@ final class ReciteSession {
     /// The reader lifted this word's cover by hand: the recitation goes on from after it.
     func skip(past word: LayoutWord) {
         guard let k = said.firstIndex(where: { $0.word?.key == word.key }), k >= tracker.cursor else { return }
-        tracker.begin(at: k + 1, held: false)
+        tracker.begin(at: k + 1)
         stoppedAt = nil
     }
 
@@ -119,7 +119,7 @@ final class ReciteSession {
     /// shown — it is where they chose to start, not something they left out — and the words
     /// they were found by count as recited.
     private func begin(at place: Locator.Place) {
-        tracker.begin(at: place.index, held: true)
+        tracker.begin(at: place.index)
         handlers?.lift(said[..<place.index].compactMap(\.word))
         recited(max(0, place.index - place.run)..<place.index)
     }

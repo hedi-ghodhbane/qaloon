@@ -57,7 +57,7 @@ for h in hyps {
     settled = final
 
     func begin(_ place: Locator.Place) {
-        tracker.begin(at: place.index, held: true)
+        tracker.begin(at: place.index)
         revealed.formUnion(said[..<place.index].compactMap { $0.word?.key })
         recited += place.run
         if firstHeard == nil { firstHeard = now }

@@ -18,6 +18,9 @@ struct Locator {
 
     /// Words in a row that make a place, and how alike each must be.
     static let need = 4, sure = 0.8
+    /// «أعوذ بالله من الشيطان الرجيم»: said before reciting, and found once in the text
+    /// (16:98) — a reader beginning is not there. Its words are left out of the search.
+    private static let istiadha = "أعوذ بالله من الشيطان الرجيم".split(separator: " ").map { Skeleton.of(String($0)) }
 
     private let words: [String]
     /// Global index of each page's first word (and, last, the total).
@@ -42,6 +45,19 @@ struct Locator {
         self.places = places
     }
 
+    /// `heard` less any three or more of the istiʿādha's words said in a row.
+    static func withoutIstiadha(_ heard: [String]) -> [String] {
+        var out: [String] = []
+        var i = 0
+        while i < heard.count {
+            var k = 0
+            while i + k < heard.count, k < istiadha.count,
+                  Skeleton.similarity(heard[i + k], istiadha[k]) >= sure { k += 1 }
+            if k >= 3 { i += k } else { out.append(heard[i]); i += 1 }
+        }
+        return out
+    }
+
     /// The mushaf-wide index of a position in a page's recitation.
     func position(page: Int, index: Int) -> Int {
         starts[max(1, min(page, starts.count - 1)) - 1] + index
@@ -49,7 +65,7 @@ struct Locator {
 
     /// Where the reader is, or nil while it cannot be told. `heard` are skeletons, whole words only.
     func locate(_ heard: [String]) -> Place? {
-        let tail = Array(heard.suffix(8))
+        let tail = Array(Self.withoutIstiadha(heard).suffix(8))
         guard tail.count >= Self.need else { return nil }
         // Longest run first: it is the one that tells repeated phrases apart.
         for from in 0...(tail.count - Self.need) {

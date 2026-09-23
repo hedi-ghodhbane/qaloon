@@ -18,19 +18,21 @@ struct Tracker {
         case stopped(at: Int)
     }
 
-    /// Passes with speech and no progress before a reader counts as stopped (4 s: a long
-    /// madd alone can fill two).
-    static let patience = 8
+    /// Passes in a row in which the reader has said two or more words past the cursor that
+    /// the text cannot take, before they count as stopped (3 s or so). Two, not one: the last
+    /// word of a live transcript is dropped, and the model rewrites the end of what it hears
+    /// as the sound goes on — a long madd is not a wrong word.
+    static let patience = 6, unfitting = 2
 
     let page: Int
     /// Positions that say nothing about where a reader is: the basmala opens every surah, so
     /// following it on this page does not mean this is the surah being recited.
     private let neutral: Set<Int>
     private(set) var follower: Follower
-    /// A word has been followed on this page: the reader is held to the text.
+    /// A word has been followed on this page by the follower itself: the reader is held to
+    /// the text, and no longer looked for elsewhere.
     private(set) var held = false
     private var idle = 0
-    private var last: [String] = []
 
     init(page: Int, words: [String], neutral: Set<Int> = []) {
         self.page = page
@@ -51,10 +53,6 @@ struct Tracker {
         var heard = Follower.words(of: hypothesis)
         if !final, !heard.isEmpty { heard.removeLast() }       // cut short, as in the follower
         guard heard.count >= 2 else { return .nothing }
-        // Only new speech counts against the reader: in a pause the same words come back
-        // pass after pass, and a pause is not a mistake.
-        let fresh = heard.suffix(3) != last.suffix(3)
-        last = heard
         if !held, let locator, let place = locator.locate(heard) {
             // Not news when it is where the cursor already is: the last words of the page
             // before, still in the sound, or a phrase said again.
@@ -62,14 +60,19 @@ struct Tracker {
             let there = locator.position(page: place.page, index: place.index)
             if !(here - 10...here).contains(there) { return .elsewhere(place) }
         }
-        if fresh { idle += 1 }
+        // Not held yet, the reader may be anywhere - reciting another surah on the page, say,
+        // while the locator waits for enough words to tell where - and is not stopped.
+        guard held else { return .nothing }
+        idle = follower.pending >= Self.unfitting ? idle + 1 : 0
         return idle >= Self.patience ? .stopped(at: cursor) : .nothing
     }
 
-    /// Takes the reader up at a position: found there by the locator, or moved by hand.
-    mutating func begin(at index: Int, held: Bool) {
+    /// Takes the reader up at a position: found there by the locator, or moved by hand. It
+    /// does not hold them: a place the locator found is provisional until the follower itself
+    /// advances from it, so a wrong one (a phrase that happens to be unique elsewhere) is
+    /// undone by the next words rather than kept.
+    mutating func begin(at index: Int) {
         follower.move(to: index)
-        self.held = self.held || held
         idle = 0
     }
 }

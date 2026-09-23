@@ -88,16 +88,29 @@ class Follower:
         self.E = [skel(w) for w in words]
         self.cursor = 0          # index of the next word not yet recited
         self.when = [None] * len(words)
+        self.last_heard = ""
 
     def feed(self, hyp_words, now, final=False):
-        H = [skel(w) for w in hyp_words]
+        # the vocative يا joins the word after it, as the mushaf writes it (يا أيها -> يٰٓأيها)
+        toks, pend = [], ""
+        for t in hyp_words:
+            if MARKS.sub("", t) == "\u064a\u0627" and not pend:
+                pend = t; continue
+            toks.append(pend + t); pend = ""
+        if pend: toks.append(pend)
+        H = [skel(w) for w in toks]
         H = [h for h in H if h]
         if not final and H:
             # The last word of a live hypothesis is usually cut short. It stays only when it is
-            # already, letter for letter, a word the text expects next.
+            # already, letter for letter, a word the text expects next, or when the pass before
+            # heard the same: a word that stays put is whole.
             near = self.E[self.cursor: self.cursor + 3]
-            if not (len(H[-1]) >= 3 and H[-1] in near):
+            whole = (len(H[-1]) >= 3 and H[-1] in near) or H[-1] == self.last_heard
+            self.last_heard = H[-1]
+            if not whole:
                 H = H[:-1]
+        else:
+            self.last_heard = ""
         if not H:
             return
         lo, hi = max(0, self.cursor - self.BACK), min(len(self.E), self.cursor + self.AHEAD)

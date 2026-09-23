@@ -37,6 +37,12 @@ enum Skeleton {
         return String(out)
     }
 
+    /// «يا» on its own (with or without marks): the vocative the mushaf joins to the next word.
+    static func isVocativeYa(_ token: String) -> Bool {
+        let letters = token.unicodeScalars.filter { !isMark($0.value) }.map(\.value)
+        return letters == [0x064A, 0x0627]
+    }
+
     /// Harakat, Quranic annotation signs (the rub' al-hizb star among them), tatweel, direction marks.
     private static func isMark(_ c: UInt32) -> Bool {
         (0x0610...0x061A).contains(c) || (0x064B...0x065F).contains(c) || c == 0x0670

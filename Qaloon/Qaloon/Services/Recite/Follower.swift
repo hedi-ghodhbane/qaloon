@@ -18,6 +18,10 @@ struct Follower {
     private(set) var cursor = 0
     /// The last word of the previous live hypothesis: heard twice running, it is whole.
     private var lastHeard = ""
+    /// After the last feed: words heard after the last one the text accounts for — said past
+    /// the cursor and not taken, because a word before them was not heard, or fitting nothing.
+    /// A reader who has gone on past a word they left out shows up here.
+    private(set) var pending = 0
 
     init(words: [String]) {
         expected = words.map(Skeleton.of)
@@ -25,9 +29,20 @@ struct Follower {
 
     var isDone: Bool { cursor >= expected.count }
 
-    /// The skeletons of a hypothesis' words.
+    /// The skeletons of a hypothesis' words. The vocative «يا» joins the word after it: the
+    /// recogniser writes «يا أيها», the mushaf «يٰٓأيها», one word.
     static func words(of hypothesis: String) -> [String] {
-        hypothesis.split(whereSeparator: \.isWhitespace).map { Skeleton.of(String($0)) }.filter { !$0.isEmpty }
+        var out: [String] = []
+        var pending = ""
+        for token in hypothesis.split(whereSeparator: \.isWhitespace) {
+            let word = pending + token
+            pending = ""
+            if Skeleton.isVocativeYa(String(token)) { pending = String(token); continue }
+            let skeleton = Skeleton.of(word)
+            if !skeleton.isEmpty { out.append(skeleton) }
+        }
+        if !pending.isEmpty { out.append(Skeleton.of(pending)) }
+        return out.filter { !$0.isEmpty }
     }
 
     /// Takes a hypothesis; returns the indices it newly covers (empty when it moves nothing).
@@ -48,7 +63,7 @@ struct Follower {
         } else {
             lastHeard = ""
         }
-        guard !heard.isEmpty, !isDone else { return cursor..<cursor }
+        guard !heard.isEmpty, !isDone else { pending = 0; return cursor..<cursor }
 
         let lo = max(0, cursor - Self.back), hi = min(expected.count, cursor + Self.ahead)
         let text = Array(expected[lo..<hi])
@@ -77,12 +92,12 @@ struct Follower {
                 if v > best { best = v; at = (i, j) }
             }
         }
-        guard var (i, j) = at else { return cursor..<cursor }
-        var hits: [Int] = []
+        guard var (i, j) = at else { pending = heard.count; return cursor..<cursor }
+        var hits: [Int] = [], heardAt: [Int: Int] = [:]      // expected index -> heard index
         while i > 0, j > 0, step[i][j] != .none {
             switch step[i][j] {
             case .match:
-                if alike[i][j] { hits.append(lo + j - 1) }
+                if alike[i][j] { hits.append(lo + j - 1); heardAt[lo + j - 1] = i - 1 }
                 i -= 1; j -= 1
             case .heardOnly: i -= 1
             case .textOnly: j -= 1
@@ -99,6 +114,8 @@ struct Follower {
             reach = h + 1
             fresh += 1
         }
+        let accounted = hits.filter { $0 < reach }.compactMap { heardAt[$0] }.max() ?? -1
+        pending = heard.count - 1 - accounted
         guard fresh > 0 else { return cursor..<cursor }
         // One new word needs support: an earlier match in the same hypothesis, or a long word.
         let anchored = hits.contains { $0 < cursor } || fresh >= 2
