@@ -161,9 +161,19 @@ struct PageOverlay: View {
                 return CGRect(x: s.rect.minX, y: box.minY, width: s.rect.width, height: box.height)
             }
             // Ayah signs to leave uncovered (all of them, so a neighbour's cover never clips one).
+            // The sign is a medallion — a diamond with bulging sides — so the hole is the
+            // ellipse in its box: it holds the whole medallion and none of the box's corners,
+            // where the next word's first mark sits. The box from the vector page is a hair
+            // smaller than the printed medallion (its pink tips stick out top and bottom),
+            // hence the padding. Cut as a box, 1563 of the 6214 signs showed a sliver of a
+            // neighbour; as an ellipse, 32.
             let markers: [CGRect] = keepMarkers
-                ? layout.ayahs.compactMap { $0.marker.map { display($0, padX: 3, padY: 6) } }
+                ? layout.ayahs.compactMap { $0.marker.map { display($0, padX: 1, padY: 6) } }
                 : []
+            var holes = Path()
+            for m in markers { holes.addEllipse(in: m) }
+            var covering = context
+            if !markers.isEmpty { covering.clip(to: holes, options: .inverse) }
             // Hidden x-spans per line (image pixels), for one continuous rule per line.
             var hiddenSpans: [Int: [ClosedRange<CGFloat>]] = [:]
 
@@ -203,18 +213,14 @@ struct PageOverlay: View {
             // are transparent: the "paper" is the cell background, so a cover in the same colour is
             // invisible. The boxes tile the line, so a cover takes the word's own width (a hair
             // more, against a seam between neighbours; the usual padding at the ends of the line)
-            // and the line's full height. Holes keep the ayah signs visible. Only the part of a
-            // sign inside a cover is cut out: with even-odd filling, any hole area outside the
-            // cover would be painted instead.
+            // and the line's full height. They are drawn through `covering`, clipped so the ayah
+            // signs stay visible.
             func cover(_ rect: CGRect, line: Int) {
                 let box = lineBoxes[line] ?? rect
                 let x0 = rect.minX - (rect.minX <= box.minX + 1 ? padX : 0.75)
                 let x1 = rect.maxX + (rect.maxX >= box.maxX - 1 ? padX : 0.75)
                 let r = display(CGRect(x: x0, y: box.minY, width: x1 - x0, height: box.height), padY: padY)
-                var path = Path(r)
-                let holes = markers.filter { $0.intersects(r) }
-                for hole in holes { path.addRect(hole.intersection(r)) }
-                context.fill(path, with: .color(Theme.parchment), style: FillStyle(eoFill: !holes.isEmpty))
+                covering.fill(Path(r), with: .color(Theme.parchment))
                 hiddenSpans[line, default: []].append(rect.minX...rect.maxX)
             }
             for w in hiddenWords { cover(w.rect, line: w.line) }
