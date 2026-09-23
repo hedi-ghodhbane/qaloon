@@ -84,6 +84,7 @@ struct ReaderView: View {
             focused = true
             images.prefetch(around: current)
             SyncService.shared.start()
+            if hideMode { recite.warmUp() }
         }
         .onChange(of: page) { _, newValue in
             guard let newValue else { return }
@@ -94,7 +95,10 @@ struct ReaderView: View {
         }
         // Changing what is hidden starts the page covered again.
         .onChange(of: keepOpening) { _, _ in hideAll() }
-        .onChange(of: hideMode) { _, on in if !on { recite.stop() } }
+        // Reciting happens in hide mode: get the model ready as it goes on, let it go as it goes off.
+        .onChange(of: hideMode) { _, on in
+            if on { recite.warmUp() } else { recite.stop(); recite.release() }
+        }
         // A page adopted from another device (sync writes `lastPage`) moves the reader.
         .onChange(of: savedPage) { _, newValue in
             let target = quran.clampPage(newValue)
@@ -201,7 +205,11 @@ struct ReaderView: View {
             HStack(spacing: 6) {
                 Image(systemName: "waveform")
                     .symbolEffect(.variableColor.iterative, isActive: recite.status == .listening)
-                Text(recite.status == .loading ? "جارٍ تجهيز الاستماع…" : (recite.heard.isEmpty ? "اقرأ…" : recite.heard))
+                Text(recite.status == .loading
+                     ? (recite.preparing > 3
+                        ? "جارٍ تجهيز الاستماع… \(Quran.arabicDigits(Int(recite.preparing))) ث (المرة الأولى بعد التثبيت أطول)"
+                        : "جارٍ تجهيز الاستماع…")
+                     : (recite.heard.isEmpty ? "اقرأ…" : recite.heard))
                     .lineLimit(1)
                     .truncationMode(.head)
                 if recite.passSeconds > 0 {

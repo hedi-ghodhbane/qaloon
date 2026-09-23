@@ -104,8 +104,13 @@ The model is [tarteel-ai/whisper-base-ar-quran](https://huggingface.co/tarteel-a
 
 Every 0.4 s — or as fast as the device manages — the last 10 s of sound go through the model
 (0.15–0.25 s a pass on a Mac; the pass time is shown next to what was heard), and the text it
-returns goes to the follower. The model is prewarmed while «تحميل…» shows, so the first words
-are not slower than the rest. The follower never trusts that text as such:
+returns goes to the follower.
+
+Getting the model ready means Core ML compiling it for the Neural Engine: once per install
+(8.5 s on a Mac — the audio encoder 7 s of it — and several times that on a phone), cached
+after that (0.4 s). It happens in the background as soon as hide mode is on, so «سمِّع» is
+usually instant; pressed sooner, «تحميل…» shows the seconds passing and says the first time is
+longer. The model is let go when hide mode goes off (150 MB of memory). The follower never trusts that text as such:
 it knows the page's words, reduces both sides to a consonant skeleton (`ٱلصَّلَوٰةَ` and
 `الصلاة` are the same), and only asks which of the next few expected words were just said.
 That is why a model trained on Ḥafṣ follows a Qālūn recitation: the differences are in

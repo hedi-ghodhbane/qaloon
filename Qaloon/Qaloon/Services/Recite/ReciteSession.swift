@@ -18,6 +18,8 @@ final class ReciteSession {
     }
 
     private(set) var status: Status = .idle
+    /// Seconds spent so far getting the model ready (shown while it takes a while).
+    private(set) var preparing = 0.0
     /// What the model last made of the sound: shown small, so a reader can tell it is hearing them.
     private(set) var heard = ""
     /// The word a reader is stopped at: they go on speaking, and it is not what they say.
@@ -63,6 +65,9 @@ final class ReciteSession {
 
     private var kit: WhisperKit?
     private var locator: Locator?
+    /// The model being got ready: loaded, and compiled for the Neural Engine by Core ML —
+    /// once per install (8 s on a Mac, longer on a phone), cached after that.
+    private var preparingKit: Task<WhisperKit, Error>?
     private var tracker = Tracker(page: 1, words: [])
     private var said: [(text: String, word: LayoutWord?)] = []
     private var handlers: Handlers?
@@ -75,6 +80,32 @@ final class ReciteSession {
                                           temperatureFallbackCount: 0, usePrefillPrompt: true,
                                           detectLanguage: false, skipSpecialTokens: true,
                                           withoutTimestamps: true, wordTimestamps: false)
+
+    /// Gets the model ready in the background, so «سمِّع» is instant: called when hide
+    /// mode is on. The first time after an install this is Core ML compiling the model for
+    /// the Neural Engine, which is what took so long under «تحميل…».
+    func warmUp() {
+        guard Self.isAvailable, kit == nil, preparingKit == nil else { return }
+        preparingKit = Task.detached(priority: .utility) { [folder = Self.modelFolder!] in
+            try await WhisperKit(WhisperKitConfig(modelFolder: folder.path, tokenizerFolder: folder,
+                                                  verbose: false, logLevel: .error,
+                                                  prewarm: true, load: true, download: false))
+        }
+        if locator == nil {
+            Task.detached(priority: .utility) {
+                let built = Locator(pages: (1...Quran.shared.pageCount).map { LayoutStore.shared.layout(for: $0).recitation.map(\.text) })
+                await MainActor.run { ReciteSession.shared.locator = built }
+            }
+        }
+    }
+
+    /// Lets the model go (150 MB of memory): hide mode is off, and it would not be used.
+    func release() {
+        guard !isOn else { return }
+        preparingKit?.cancel()
+        preparingKit = nil
+        kit = nil
+    }
 
     /// Starts listening, and follows `page` until the reader is heard to be elsewhere.
     func start(page: PageLayout, handlers: Handlers) {
@@ -136,19 +167,21 @@ final class ReciteSession {
             guard await AudioProcessor.requestRecordPermission() else {
                 throw Failure("اسمح للتطبيق باستعمال الميكروفون من إعدادات الجهاز.")
             }
+            _ = folder
             if kit == nil {
-                // Prewarmed: Core ML specialises the models for the Neural Engine at load (long
-                // the first time after an install), not during the first words recited.
-                kit = try await WhisperKit(WhisperKitConfig(modelFolder: folder.path, tokenizerFolder: folder,
-                                                            verbose: false, logLevel: .error,
-                                                            prewarm: true, load: true, download: false))
+                warmUp()
+                let started = Date()
+                let ticking = Task { [weak self] in
+                    while !Task.isCancelled {
+                        try? await Task.sleep(for: .milliseconds(250))
+                        self?.preparing = Date().timeIntervalSince(started)
+                    }
+                }
+                defer { ticking.cancel(); preparing = 0 }
+                kit = try await preparingKit?.value
+                preparingKit = nil
             }
-            if locator == nil {
-                // Every word of the mushaf, once: a second or so, off the main thread.
-                locator = await Task.detached(priority: .userInitiated) {
-                    Locator(pages: (1...Quran.shared.pageCount).map { LayoutStore.shared.layout(for: $0).recitation.map(\.text) })
-                }.value
-            }
+            while locator == nil, !Task.isCancelled { try await Task.sleep(for: .milliseconds(100)) }
             guard let kit, !Task.isCancelled else { return }
             AyahPlayer.shared.stop()
             kit.audioProcessor.purgeAudioSamples(keepingLast: 0)
